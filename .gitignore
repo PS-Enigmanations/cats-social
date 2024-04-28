@@ -7,3 +7,4 @@ docker
 .DS_Store
 k8/app-env-staging.yaml
 k8/app-e
+cats-social
