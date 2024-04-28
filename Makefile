@@ -18,4 +18,4 @@ build:
 
 ## up: run docker-compose up with dev environment.
 up:
-	./cats-social
+	SECRET_KEY=a-very-secretive-secret-key ./cats-social

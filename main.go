@@ -1,23 +1,43 @@
 package main
 
 import (
-	"enigmanations/cats-social/app"
-	"enigmanations/cats-social/controller"
-	"enigmanations/cats-social/repository"
-	"enigmanations/cats-social/service"
+	"context"
+	"enigmanations/cats-social/pkg/database"
+	"fmt"
+	"log/slog"
+	"os"
 
-	"github.com/go-playground/validator"
-	"github.com/julienschmidt/httprouter"
+	"github.com/joho/godotenv"
 )
 
 func main() {
-	db := app.NewDB()
-	validate := validator.New()
-	catRepository := repository.NewCatRepository()
-	catService := service.NewCatService(catRepository, db, validate)
-	catController := controller.NewCatController(catService)
+	err := godotenv.Load()
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Failed to load .env %v\n", err)
+		os.Exit(1)
+	}
 
-	router := httprouter.New()
+	pgUrl := `postgres://%s:%s@%s:%d/%s?sslmode=disable&pool_max_conns=%d`
+	pgUrl = fmt.Sprintf(pgUrl,
+		os.Getenv("DATABASE_USER"),
+		os.Getenv("DATABASE_PASSWORD"),
+		os.Getenv("DATABASE_HOST"),
+		5432,
+		os.Getenv("DATABASE_NAME"),
+		32,
+	)
 
-	router.POST("/cats", catController.Create)
+	pgPool, err := database.NewPGXPool(context.Background(), pgUrl, &database.PGXStdLogger{
+		Logger: slog.Default(),
+	})
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Unable to connect to database: %v\n", err)
+		os.Exit(1)
+	}
+	defer pgPool.Close()
+
+	// Check reachability
+	if _, err = pgPool.Exec(context.Background(), `SELECT 1`); err != nil {
+		fmt.Errorf("pool.Exec() error: %v", err)
+	}
 }
