@@ -1,0 +1,9 @@
+bin
+vendor
+docker
+**/gomock_reflect*
+
+.idea
+.DS_Store
+k8/app-env-staging.yaml
+k8/app-e
