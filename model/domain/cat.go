@@ -1,6 +1,7 @@
 package domain
 
 type Cat struct {
+	Id          int        `json:"id"`
 	Name        string     `json:"name" validate:"required,min=1,max=30"`
 	Race        Race       `json:"race" validate:"required,oneof=Persian MaineCoon Siamese Ragdoll Bengal Sphynx BritishShorthair Abyssinian ScottishFold Birman"`
 	Sex         Sex        `json:"sex" validate:"required,oneof=male female"`
