@@ -1,10 +1,10 @@
 package main
 
 import (
-	"PS-Enigmanations/cats-social/app"
-	"PS-Enigmanations/cats-social/controller"
-	"PS-Enigmanations/cats-social/repository"
-	"PS-Enigmanations/cats-social/service"
+	"enigmanations/cats-social/app"
+	"enigmanations/cats-social/controller"
+	"enigmanations/cats-social/repository"
+	"enigmanations/cats-social/service"
 
 	"github.com/go-playground/validator"
 	"github.com/julienschmidt/httprouter"

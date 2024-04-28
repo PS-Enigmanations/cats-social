@@ -1,9 +1,9 @@
 package repository
 
 import (
-	"PS-Enigmanations/cats-social/model/domain"
 	"context"
 	"database/sql"
+	"enigmanations/cats-social/model/domain"
 )
 
 type CatRepositoryImpl struct {

@@ -1,8 +1,8 @@
 package app
 
 import (
-	"PS-Enigmanations/cats-social/helper"
 	"database/sql"
+	"enigmanations/cats-social/helper"
 )
 
 func NewDB() *sql.DB {

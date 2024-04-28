@@ -1,10 +1,10 @@
 package controller
 
 import (
-	"PS-Enigmanations/cats-social/helper"
-	"PS-Enigmanations/cats-social/model/web"
-	"PS-Enigmanations/cats-social/service"
 	"encoding/json"
+	"enigmanations/cats-social/helper"
+	"enigmanations/cats-social/model/web"
+	"enigmanations/cats-social/service"
 	"net/http"
 
 	"github.com/julienschmidt/httprouter"

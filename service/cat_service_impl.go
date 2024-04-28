@@ -1,12 +1,12 @@
 package service
 
 import (
-	"PS-Enigmanations/cats-social/helper"
-	"PS-Enigmanations/cats-social/model/domain"
-	"PS-Enigmanations/cats-social/model/web"
-	"PS-Enigmanations/cats-social/repository"
 	"context"
 	"database/sql"
+	"enigmanations/cats-social/helper"
+	"enigmanations/cats-social/model/domain"
+	"enigmanations/cats-social/model/web"
+	"enigmanations/cats-social/repository"
 
 	"github.com/go-playground/validator"
 )

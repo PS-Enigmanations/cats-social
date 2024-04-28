@@ -1,8 +1,8 @@
 package service
 
 import (
-	"PS-Enigmanations/cats-social/model/web"
 	"context"
+	"enigmanations/cats-social/model/web"
 )
 
 type CatService interface {
