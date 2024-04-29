@@ -28,11 +28,11 @@ func main() {
 	// Connect to the database
 	pgUrl := `postgres://%s:%s@%s:%d/%s?sslmode=disable&pool_max_conns=%d`
 	pgUrl = fmt.Sprintf(pgUrl,
-		os.Getenv("DATABASE_USER"),
-		os.Getenv("DATABASE_PASSWORD"),
-		os.Getenv("DATABASE_HOST"),
+		os.Getenv("DB_USERNAME"),
+		os.Getenv("DB_PASSWORD"),
+		os.Getenv("DB_HOST"),
 		5432,
-		os.Getenv("DATABASE_NAME"),
+		os.Getenv("DB_NAME"),
 		32,
 	)
 
