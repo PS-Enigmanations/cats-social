@@ -3,11 +3,11 @@ package service
 import (
 	"context"
 	"enigmanations/cats-social/internal/user"
+	"enigmanations/cats-social/internal/user/errs"
 	"enigmanations/cats-social/internal/user/repository"
 	"enigmanations/cats-social/internal/user/request"
 	"enigmanations/cats-social/internal/user/response"
 	"enigmanations/cats-social/pkg/bcrypt"
-	"errors"
 	"strings"
 
 	emailverifier "github.com/AfterShip/email-verifier"
@@ -37,13 +37,20 @@ func (service *userService) Create(req *request.UserCreateRequest) (*response.Us
 		lowerCasedEmail := strings.ToLower(req.Email)
 		payload.Email = lowerCasedEmail
 
+		// Check email format
 		ret, err := verifier.Verify(payload.Email)
 		if err != nil {
-			return nil, err
+			return nil, errs.UserErrEmailInvalidFormat
 		}
 
 		if !ret.Syntax.Valid {
-			return nil, errors.New("Email syntax is invalid!")
+			return nil, errs.UserErrEmailInvalidFormat
+		}
+
+		// Check exisiting user
+		userFound, _ := service.db.GetByEmailIfExists(service.Context, req.Email)
+		if userFound != nil {
+			return nil, errs.UserErrEmailExist
 		}
 	}
 	if req.Password != "" {

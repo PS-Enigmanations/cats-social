@@ -2,8 +2,10 @@ package controller
 
 import (
 	"encoding/json"
+	"enigmanations/cats-social/internal/user/errs"
 	"enigmanations/cats-social/internal/user/request"
 	"enigmanations/cats-social/internal/user/service"
+	"errors"
 	"log"
 	"net/http"
 
@@ -40,7 +42,17 @@ func (c *userController) UserCreateController(w http.ResponseWriter, r *http.Req
 
 	result, err := c.Service.Create(&reqBody)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		switch {
+		case errors.Is(err, errs.UserErrEmailInvalidFormat):
+			http.Error(w, err.Error(), http.StatusBadRequest)
+			break
+		case errors.Is(err, errs.UserErrEmailExist):
+			http.Error(w, err.Error(), http.StatusConflict)
+			break
+		default:
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			break
+		}
 		return
 	}
 
