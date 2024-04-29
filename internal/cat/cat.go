@@ -1,4 +1,4 @@
-package domain
+package cat
 
 type Cat struct {
 	Id          int        `json:"id"`
@@ -8,6 +8,15 @@ type Cat struct {
 	AgeInMonth  int        `json:"ageInMonth" validate:"required,min=1,max=120082"`
 	Description string     `json:"description" validate:"required,min=1,max=200"`
 	ImageUrls   []ImageUrl `json:"imageUrls" validate:"required,min=1,dive,required,url"`
+}
+
+type CatCreateDTO struct {
+	Name        string `validate:"required, min=1, max=30"`
+	Race        string `validate:"required"`
+	Sex         string `validate:"required"`
+	AgeInMonth  int    `validate:"required"`
+	Description string
+	ImageUrls   string
 }
 
 type Race string
