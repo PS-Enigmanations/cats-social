@@ -5,23 +5,21 @@ import (
 
 	"enigmanations/cats-social/internal/cat"
 	"enigmanations/cats-social/internal/cat/repository"
-
-	"github.com/go-playground/validator"
 )
 
 type CatService interface {
 	GetAll() ([]*CatResponse, error)
+	Create(payload *cat.CatCreateRequest) (*CatResponse, error)
 }
 
 type catService struct {
-	db       repository.Database
-	Context  context.Context
-	Validate *validator.Validate
+	db      repository.Database
+	Context context.Context
 }
 
 // NewService creates an API service.
-func NewCatService(db repository.Database, ctx context.Context, validate *validator.Validate) *catService {
-	return &catService{db: db, Context: ctx, Validate: validate}
+func NewCatService(db repository.Database, ctx context.Context) *catService {
+	return &catService{db: db, Context: ctx}
 }
 
 func (service *catService) GetAll() ([]*CatResponse, error) {
@@ -38,6 +36,22 @@ func (service *catService) GetAll() ([]*CatResponse, error) {
 	}
 
 	return catRes, nil
+}
+
+func (service *catService) Create(payload *cat.CatCreateRequest) (*CatResponse, error) {
+	model := cat.Cat{
+		Name: payload.Name,
+	}
+
+	// call Create from repository/ datastore
+	cat, err := service.db.Save(service.Context, model)
+
+	// if error occur, return nil for the response as well as return the error
+	if err != nil {
+		return nil, err
+	}
+
+	return CatToCatResponse(*cat), nil
 }
 
 type CatResponse struct {

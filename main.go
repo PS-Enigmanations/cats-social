@@ -13,7 +13,6 @@ import (
 	"enigmanations/cats-social/internal/cat/repository"
 	"enigmanations/cats-social/internal/cat/service"
 
-	"github.com/go-playground/validator"
 	"github.com/joho/godotenv"
 	"github.com/julienschmidt/httprouter"
 )
@@ -52,10 +51,8 @@ func main() {
 	}
 
 	// Setup server
-	validate := validator.New()
-
 	catRepository := repository.NewCatRepository(pgPool)
-	catService := service.NewCatService(catRepository, context.Background(), validate)
+	catService := service.NewCatService(catRepository, context.Background())
 	catController := controller.NewCatController(catService)
 
 	// Prepare router
@@ -63,6 +60,7 @@ func main() {
 
 	// Cat api endpoint
 	router.GET("/cats", catController.CatGetController)
+	router.POST("/cats", catController.CatCreateController)
 
 	// Run the server
 	log.Fatalf("%v", http.ListenAndServe(":8080", router))
