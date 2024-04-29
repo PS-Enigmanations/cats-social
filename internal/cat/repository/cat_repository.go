@@ -4,6 +4,10 @@ import (
 	"context"
 	"enigmanations/cats-social/internal/cat"
 	"enigmanations/cats-social/pkg/database"
+	"fmt"
+
+	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgxpool"
 )
 
 type ICatRepository interface {
@@ -12,10 +16,10 @@ type ICatRepository interface {
 }
 
 type Database struct {
-	pool database.PGXQuerier
+	pool *pgxpool.Pool
 }
 
-func NewCatRepository(pool database.PGXQuerier) Database {
+func NewCatRepository(pool *pgxpool.Pool) Database {
 	return Database{
 		pool: pool,
 	}
@@ -62,27 +66,36 @@ func (db *Database) GetAll(ctx context.Context) ([]*cat.Cat, error) {
 }
 
 func (db *Database) Save(ctx context.Context, model cat.Cat) (*cat.Cat, error) {
-	const q = `INSERT into cats ("name") VALUES ($1)
-		RETURNING id, name;`
+	var result *cat.Cat
 
-	// execute query to insert new record. it takes 'cat' variable as its input
-	// the result will be placed in 'row' variable
-	row := db.pool.QueryRow(ctx, q, model.Name)
+	if err := database.BeginTransaction(ctx, db.pool, func(tx pgx.Tx) error {
+		const q = `INSERT into cats ("name") VALUES ($1)
+			RETURNING id, nam;`
 
-	// create 'c' variable as 'Cat' type to contain scanned data value from 'row' variable
-	c := new(cat.Cat)
+		// execute query to insert new record. it takes 'cat' variable as its input
+		// the result will be placed in 'row' variable
+		row := db.pool.QueryRow(ctx, q, model.Name)
 
-	// scan 'row' variable and place the value to 'c' variable as well as check for error
-	err := row.Scan(
-		&c.Id,
-		&c.Name,
-	)
+		// create 'c' variable as 'Cat' type to contain scanned data value from 'row' variable
+		c := new(cat.Cat)
 
-	// return nil and error if scan operation is fail/ error found
-	if err != nil {
-		return nil, err
+		// scan 'row' variable and place the value to 'c' variable as well as check for error
+		err := row.Scan(
+			&c.Id,
+			&c.Name,
+		)
+
+		// return nil and error if scan operation is fail/ error found
+		if err != nil {
+			return fmt.Errorf("Save %w", err)
+		}
+
+		result = c
+		return nil
+	}); err != nil {
+		return nil, fmt.Errorf("Save transaction %w", err)
 	}
 
 	// return 'c' and nil if no error found
-	return c, nil
+	return result, nil
 }
