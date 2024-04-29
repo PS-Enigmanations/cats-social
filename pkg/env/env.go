@@ -34,6 +34,6 @@ func initializeEnvs() {
 	envSyncOnce.Do(func() {
 		isProduction = os.Getenv("ENV") == "production"
 		isStaging = os.Getenv("ENV") == "staging"
-		secretKey = os.Getenv("SECRET_KEY")
+		secretKey = os.Getenv("JWT_SECRET")
 	})
 }

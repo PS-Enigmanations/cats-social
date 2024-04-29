@@ -21,6 +21,10 @@ build:
 up:
 	SECRET_KEY=a-very-secretive-secret-key ./cats-social
 
-## run golang-migrate
-migrate:
+## run golang-migrate up
+migrateup:
 	migrate -database $(DATABASE_URL) -path db/migrations up
+
+## run golang-migrate up
+migratedown:
+	migrate -database $(DATABASE_URL) -path db/migrations down

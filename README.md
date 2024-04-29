@@ -5,12 +5,14 @@ https://openidea-projectsprint.notion.site/Cats-Social-9e7639a6a68748c38c67f81d9
 **Database:**
 
 ```sh
-SECRET_KEY=a-very-secretive-secret-key
-DATABASE_HOST=localhost
-DATABASE_USER=postgres
-DATABASE_PASSWORD=postgres
-DATABASE_NAME=cats-social
-DATABASE_PORT=5432
+DB_HOST=localhost
+DB_USERNAME=postgres
+DB_PASSWORD=postgres
+DB_NAME=cats-social
+DB_PORT=5432
+DB_PARAMS="sslmode=disabled"
+JWT_SECRET=a-very-secretive-secret-key
+BCRYPT_SALT=8
 ```
 
 **Run migration:**
@@ -20,7 +22,7 @@ DATABASE_PORT=5432
 2. Run scripts
 
 ```sh
-make migrate #or
+make migrateup #or
 
 migrate -database "postgres://username:password@host:port/dbname?sslmode=disable" -path db/migrations up
 ```
@@ -39,4 +41,5 @@ make dev
 
 **API**:
 
-- http://localhost:8000/v1/cats (`GET`, `POST`)
+- http://localhost:8080/v1/cats (`GET`, `POST`)
+- http://localhost:8080/v1/register (`POST`)

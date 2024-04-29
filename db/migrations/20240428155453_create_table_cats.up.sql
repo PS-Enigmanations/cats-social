@@ -11,6 +11,6 @@ CREATE TABLE "public"."cats" (
     "created_at" timestamptz NOT NULL DEFAULT now(),
     "updated_at" timestamptz DEFAULT now(),
     "deleted_at" timestamptz DEFAULT now(),
-    CONSTRAINT "fk_cats_user_id" FOREIGN KEY ("user_id") REFERENCES "public"."users"("id"),
+    CONSTRAINT "fk_cats_user_id" FOREIGN KEY ("user_id") REFERENCES "public"."users" ("id"),
     PRIMARY KEY ("id")
 );
