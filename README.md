@@ -41,4 +41,4 @@ make dev
 
 **API**:
 
-- http://localhost:8000/v1/cats (`GET`, `POST`)
+- http://localhost:8080/v1/cats (`GET`, `POST`)
