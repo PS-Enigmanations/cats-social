@@ -20,6 +20,8 @@ DATABASE_PORT=5432
 2. Run scripts
 
 ```sh
+make migrate #or
+
 migrate -database "postgres://username:password@host:port/dbname?sslmode=disable" -path db/migrations up
 ```
 

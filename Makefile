@@ -2,7 +2,6 @@
 
 ADDR := localhost:8000
 PROJECTNAME := $(shell basename "$(PWD)")
-
 DATABASE_URL := "postgres://postgres:postgres@localhost:5432/cats-social?sslmode=disable"
 
 # Make is verbose in Linux. Make it silent.
@@ -24,4 +23,4 @@ up:
 
 ## run golang-migrate
 migrate:
-	migrate -database DATABASE_URL
+	migrate -database $(DATABASE_URL) -path db/migrations up
