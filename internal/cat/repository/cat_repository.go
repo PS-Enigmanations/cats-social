@@ -26,7 +26,15 @@ func NewCatRepository(pool *pgxpool.Pool) Database {
 }
 
 func (db *Database) GetAll(ctx context.Context) ([]*cat.Cat, error) {
-	const q = `SELECT * FROM cats`
+	const q = `
+	SELECT
+		c.id,
+		c.name,
+		c.race,
+		c.sex,
+		c.age_in_month,
+		c.description
+	FROM cats c`
 
 	// execute query
 	rows, err := db.pool.Query(ctx, q)
@@ -49,6 +57,10 @@ func (db *Database) GetAll(ctx context.Context) ([]*cat.Cat, error) {
 			err := rows.Scan(
 				&c.Id,
 				&c.Name,
+				&c.Race,
+				&c.Sex,
+				&c.AgeInMonth,
+				&c.Description,
 			)
 
 			// return nil and error if scan operation fail
@@ -69,12 +81,22 @@ func (db *Database) Save(ctx context.Context, model cat.Cat) (*cat.Cat, error) {
 	var result *cat.Cat
 
 	if err := database.BeginTransaction(ctx, db.pool, func(tx pgx.Tx) error {
-		const q = `INSERT into cats ("name") VALUES ($1)
-			RETURNING id, nam;`
+		const q = `INSERT into cats
+			("user_id", "name", "race", "sex", "age_in_month", "description")
+			VALUES ($1, $2, $3, $4, $5, $6)
+			RETURNING id, name, race, sex, age_in_month, description;`
 
 		// execute query to insert new record. it takes 'cat' variable as its input
 		// the result will be placed in 'row' variable
-		row := db.pool.QueryRow(ctx, q, model.Name)
+		row := db.pool.QueryRow(
+			ctx, q,
+			model.UserId,
+			model.Name,
+			model.Race,
+			model.Sex,
+			model.AgeInMonth,
+			model.Description,
+		)
 
 		// create 'c' variable as 'Cat' type to contain scanned data value from 'row' variable
 		c := new(cat.Cat)
@@ -83,6 +105,10 @@ func (db *Database) Save(ctx context.Context, model cat.Cat) (*cat.Cat, error) {
 		err := row.Scan(
 			&c.Id,
 			&c.Name,
+			&c.Race,
+			&c.Sex,
+			&c.AgeInMonth,
+			&c.Description,
 		)
 
 		// return nil and error if scan operation is fail/ error found

@@ -3,6 +3,8 @@
 ADDR := localhost:8000
 PROJECTNAME := $(shell basename "$(PWD)")
 
+DATABASE_URL := "postgres://postgres:postgres@localhost:5432/cats-social?sslmode=disable"
+
 # Make is verbose in Linux. Make it silent.
 MAKEFLAGS += --silent
 
@@ -19,3 +21,7 @@ build:
 ## up: run docker-compose up with dev environment.
 up:
 	SECRET_KEY=a-very-secretive-secret-key ./cats-social
+
+## run golang-migrate
+migrate:
+	migrate -database DATABASE_URL

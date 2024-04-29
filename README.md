@@ -13,6 +13,16 @@ DATABASE_NAME=cats-social
 DATABASE_PORT=5432
 ```
 
+**Run migration:**
+
+1. Install [golang-migrate](https://github.com/golang-migrate/migrate/tree/master/cmd/migrate#installation)
+
+2. Run scripts
+
+```sh
+migrate -database "postgres://username:password@host:port/dbname?sslmode=disable" -path db/migrations up
+```
+
 **Setup:**
 
 ```sh

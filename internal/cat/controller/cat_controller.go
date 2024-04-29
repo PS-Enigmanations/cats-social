@@ -21,7 +21,7 @@ func NewCatController(svc service.CatService) catController {
 }
 
 func (c *catController) CatGetController(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
-	w.WriteHeader(http.StatusCreated)
+	w.WriteHeader(http.StatusOK)
 	w.Header().Add("Content-Type", "application/json")
 
 	cats, err := c.Service.GetAll()

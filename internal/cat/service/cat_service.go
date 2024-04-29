@@ -39,8 +39,15 @@ func (service *catService) GetAll() ([]*CatResponse, error) {
 }
 
 func (service *catService) Create(payload *cat.CatCreateRequest) (*CatResponse, error) {
+	const USER_ID = 2
+
 	model := cat.Cat{
-		Name: payload.Name,
+		UserId:      USER_ID,
+		Name:        payload.Name,
+		Race:        cat.Race(payload.Race),
+		Sex:         cat.Sex(payload.Sex),
+		AgeInMonth:  payload.AgeInMonth,
+		Description: payload.Description,
 	}
 
 	// call Create from repository/ datastore
@@ -55,14 +62,22 @@ func (service *catService) Create(payload *cat.CatCreateRequest) (*CatResponse, 
 }
 
 type CatResponse struct {
-	Id   int
-	Name string
+	Id          int
+	Name        string
+	Race        string
+	Sex         string
+	AgeInMonth  int
+	Description string
 }
 
 // convert 'Cat' model to 'CatResponse' DTO
 func CatToCatResponse(c cat.Cat) *CatResponse {
 	return &CatResponse{
-		Id:   c.Id,
-		Name: c.Name,
+		Id:          c.Id,
+		Name:        c.Name,
+		Race:        string(c.Race),
+		Sex:         string(c.Sex),
+		AgeInMonth:  c.AgeInMonth,
+		Description: c.Description,
 	}
 }

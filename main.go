@@ -63,6 +63,7 @@ func main() {
 	router.POST("/v1/cats", catController.CatCreateController)
 
 	// Run the server
-	fmt.Printf("Serving on http://localhost:8000\n")
-	log.Fatalf("%v", http.ListenAndServe(":8000", router))
+	appServeAddr := ":" + os.Getenv("APP_PORT")
+	fmt.Printf("Serving on http://localhost:%s\n", os.Getenv("APP_PORT"))
+	log.Fatalf("%v", http.ListenAndServe(appServeAddr, router))
 }
