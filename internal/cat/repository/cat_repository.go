@@ -3,7 +3,7 @@ package repository
 import (
 	"context"
 	"enigmanations/cats-social/internal/cat"
-	"enigmanations/cats-social/pkg/database/postgres/interfaces"
+	"enigmanations/cats-social/pkg/database"
 )
 
 type ICatRepository interface {
@@ -12,10 +12,10 @@ type ICatRepository interface {
 }
 
 type Database struct {
-	pool interfaces.PGXQuerier
+	pool database.PGXQuerier
 }
 
-func NewCatRepository(pool interfaces.PGXQuerier) Database {
+func NewCatRepository(pool database.PGXQuerier) Database {
 	return Database{
 		pool: pool,
 	}
