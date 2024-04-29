@@ -22,7 +22,7 @@ BCRYPT_SALT=8
 2. Run scripts
 
 ```sh
-make migrate #or
+make migrateup #or
 
 migrate -database "postgres://username:password@host:port/dbname?sslmode=disable" -path db/migrations up
 ```
@@ -42,3 +42,4 @@ make dev
 **API**:
 
 - http://localhost:8080/v1/cats (`GET`, `POST`)
+- http://localhost:8080/v1/register (`POST`)

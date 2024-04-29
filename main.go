@@ -9,9 +9,15 @@ import (
 	"net/http"
 	"os"
 
-	"enigmanations/cats-social/internal/cat/controller"
-	"enigmanations/cats-social/internal/cat/repository"
-	"enigmanations/cats-social/internal/cat/service"
+	// Cat
+	catController "enigmanations/cats-social/internal/cat/controller"
+	catRepository "enigmanations/cats-social/internal/cat/repository"
+	catService "enigmanations/cats-social/internal/cat/service"
+
+	// User
+	userController "enigmanations/cats-social/internal/user/controller"
+	userRepository "enigmanations/cats-social/internal/user/repository"
+	userService "enigmanations/cats-social/internal/user/service"
 
 	"github.com/joho/godotenv"
 	"github.com/julienschmidt/httprouter"
@@ -50,15 +56,24 @@ func main() {
 		fmt.Errorf("pool.Exec() error: %v", err)
 	}
 
-	// Setup server
-	catRepository := repository.NewCatRepository(pgPool)
-	catService := service.NewCatService(catRepository, context.Background())
-	catController := controller.NewCatController(catService)
-
 	// Prepare router
 	router := httprouter.New()
 
-	// Cat api endpoint
+	// Users
+	userRepository := userRepository.NewUserRepository(pgPool)
+	userService := userService.NewUserService(userRepository, context.Background())
+	userController := userController.NewUserController(userService)
+
+	// Users api endpoint
+	router.POST("/v1/register", userController.UserCreateController)
+
+	// Cats
+	// Setup cat dependency
+	catRepository := catRepository.NewCatRepository(pgPool)
+	catService := catService.NewCatService(catRepository, context.Background())
+	catController := catController.NewCatController(catService)
+
+	// Cats api endpoint
 	router.GET("/v1/cats", catController.CatGetController)
 	router.POST("/v1/cats", catController.CatCreateController)
 

@@ -2,24 +2,24 @@ package user
 
 import (
 	"time"
-
-	"github.com/gofrs/uuid"
 )
 
+const UserSessionLengthSeconds = 134784000 // 1 year
+
 type UserSession struct {
-	AccessToken  string    `json:"access_token"`
-	TokenExpires int       `json:"token_expires"`
-	CreatedAt    time.Time `json:"created_at"`
-	UpdatedAt    time.Time `json:"updated_at"`
-	DeletedAt    time.Time `json:"deleted_at"`
+	Token     string    `json:"token"`
+	ExpiresAt time.Time `json:"expires_at"`
+	UserId    int       `json:"user_id"`
+	CreatedAt time.Time `json:"created_at"`
+	UpdatedAt time.Time `json:"updated_at"`
+	DeletedAt time.Time `json:"deleted_at"`
 }
 
 type User struct {
-	ID       string    `json:"id"`
-	UUID     uuid.UUID `json:"uid"`
-	Email    *string   `json:"email"`
-	Password string    `json:"password"`
-	Phone    *string   `json:"phone"`
+	Id       int    `json:"id"`
+	Name     string `json:"name"`
+	Email    string `json:"email"`
+	Password string `json:"password"`
 
 	Session []UserSession
 

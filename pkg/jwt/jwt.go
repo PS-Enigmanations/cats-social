@@ -8,13 +8,13 @@ import (
 	"github.com/golang-jwt/jwt"
 )
 
-const accessTokenDurationSeconds = 8 * time.Hour // 8 hours
+const AccessTokenDurationSeconds = 8 * time.Hour // 8 hours
 
 func GenerateAccessToken(userID uint64, credential *user.User) (string, error) {
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
 		"uid": userID,
-		"sub": credential.UUID,
-		"exp": time.Now().Add(accessTokenDurationSeconds).Unix(),
+		"sub": credential.Name,
+		"exp": time.Now().Add(AccessTokenDurationSeconds).Unix(),
 	})
 	tokenString, err := token.SignedString([]byte(env.GetSecretKey()))
 	if err != nil {
@@ -30,9 +30,9 @@ func GenerateSessionTokenJWT(
 ) (string, error) {
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
 		"uid": userID,
-		"sub": credential.UUID,
-		"sid": session.AccessToken,
-		"exp": session.TokenExpires,
+		"sub": credential.Name,
+		"sid": session.Token,
+		"exp": session.ExpiresAt.Second(),
 	})
 	tokenString, err := token.SignedString([]byte(env.GetSecretKey()))
 	if err != nil {
