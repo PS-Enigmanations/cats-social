@@ -13,12 +13,12 @@ type CatService interface {
 }
 
 type catService struct {
-	db      repository.Database
+	db      repository.CatRepository
 	Context context.Context
 }
 
 // NewService creates an API service.
-func NewCatService(db repository.Database, ctx context.Context) *catService {
+func NewCatService(db repository.CatRepository, ctx context.Context) CatService {
 	return &catService{db: db, Context: ctx}
 }
 

@@ -10,7 +10,7 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
-type ICatRepository interface {
+type CatRepository interface {
 	GetAll(ctx context.Context) ([]*cat.Cat, error)
 	Save(ctx context.Context, model cat.Cat) (*cat.Cat, error)
 }
@@ -19,8 +19,8 @@ type Database struct {
 	pool *pgxpool.Pool
 }
 
-func NewCatRepository(pool *pgxpool.Pool) Database {
-	return Database{
+func NewCatRepository(pool *pgxpool.Pool) CatRepository {
+	return &Database{
 		pool: pool,
 	}
 }
