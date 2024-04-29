@@ -1,6 +1,6 @@
 module enigmanations/cats-social
 
-go 1.19
+go 1.22.2
 
 require (
 	github.com/gabriel-vasile/mimetype v1.4.3 // indirect
