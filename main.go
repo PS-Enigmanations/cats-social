@@ -59,9 +59,10 @@ func main() {
 	router := httprouter.New()
 
 	// Cat api endpoint
-	router.GET("/cats", catController.CatGetController)
-	router.POST("/cats", catController.CatCreateController)
+	router.GET("/v1/cats", catController.CatGetController)
+	router.POST("/v1/cats", catController.CatCreateController)
 
 	// Run the server
-	log.Fatalf("%v", http.ListenAndServe(":8080", router))
+	fmt.Printf("Serving on http://localhost:8000\n")
+	log.Fatalf("%v", http.ListenAndServe(":8000", router))
 }

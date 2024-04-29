@@ -24,3 +24,7 @@ go mod download
 ```sh
 make dev
 ```
+
+**API**:
+
+- http://localhost:8000/v1/cats (`GET`, `POST`)
