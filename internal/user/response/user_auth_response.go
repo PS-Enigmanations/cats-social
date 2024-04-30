@@ -14,13 +14,13 @@ type UserLoginResponse struct {
 
 const UserLoginSuccMessage = "User logged successfully"
 
-func UserToUserLoginResponse(u user.User, uSession user.UserSession) *UserLoginResponse {
+func UserToUserLoginResponse(u user.User, token string) *UserLoginResponse {
 	return &UserLoginResponse{
 		Message: UserLoginSuccMessage,
 		Data: UserLoginShow{
 			Email: u.Email,
 			Name:  u.Name,
-			Token: uSession.Token,
+			Token: token,
 		},
 	}
 }

@@ -8,6 +8,8 @@ import (
 	"enigmanations/cats-social/internal/user/request"
 	"enigmanations/cats-social/internal/user/response"
 	"enigmanations/cats-social/pkg/bcrypt"
+	"enigmanations/cats-social/pkg/jwt"
+	"fmt"
 
 	emailverifier "github.com/AfterShip/email-verifier"
 )
@@ -69,5 +71,11 @@ func (service *userAuthService) Login(req *request.UserLoginRequest) (*response.
 		userSession = userSessionCreated
 	}
 
-	return response.UserToUserLoginResponse(*userCredential, *userSession), nil
+	// Generate access token
+	accessToken, err := jwt.GenerateAccessToken(uint64(userSession.UserId), userCredential)
+	if err != nil {
+		return nil, fmt.Errorf("%w", err)
+	}
+
+	return response.UserToUserLoginResponse(*userCredential, accessToken), nil
 }
