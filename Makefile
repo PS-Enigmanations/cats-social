@@ -19,7 +19,7 @@ build:
 
 ## up: run docker-compose up with dev environment.
 up:
-	SECRET_KEY=a-very-secretive-secret-key ./cats-social
+	JWT_SECRET=a-very-secretive-secret-key ./cats-social
 
 ## run golang-migrate up
 migrateup:

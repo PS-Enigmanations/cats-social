@@ -41,5 +41,6 @@ make dev
 
 **API**:
 
-- http://localhost:8080/v1/cats (`GET`, `POST`)
 - http://localhost:8080/v1/register (`POST`)
+- http://localhost:8080/v1/login (`POST`)
+- http://localhost:8080/v1/cats (`GET`, `POST`)

@@ -3,6 +3,10 @@ package jwt
 import (
 	"enigmanations/cats-social/internal/user"
 	"enigmanations/cats-social/pkg/env"
+	"errors"
+	"fmt"
+	"net/http"
+	"strings"
 	"time"
 
 	"github.com/golang-jwt/jwt"
@@ -39,4 +43,35 @@ func GenerateSessionTokenJWT(
 		return "", err
 	}
 	return tokenString, nil
+}
+
+func ValidateToken(encodedToken string) (*jwt.Token, error) {
+	token, err := jwt.Parse(encodedToken, func(token *jwt.Token) (interface{}, error) {
+		// validate signing method
+		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
+			return nil, fmt.Errorf("unexpected signing method: %v", token.Header["alg"])
+		}
+
+		return []byte(env.GetSecretKey()), nil
+	})
+	if err != nil {
+		return token, err
+	}
+
+	return token, nil
+}
+
+func GetTokenFromAuthHeader(r *http.Request) (string, error) {
+	authorizationHeader := r.Header.Get("Authorization")
+	// check if Authorization token is set
+	if authorizationHeader == "" {
+		return "", errors.New("missing Authorization header")
+	}
+
+	// Remove bearer in the authorization header
+	authorizationHeaderParts := strings.Fields(authorizationHeader)
+	if len(authorizationHeaderParts) != 2 || strings.ToLower(authorizationHeaderParts[0]) != "bearer" {
+		return "", errors.New("invalid Token - not of type: Bearer")
+	}
+	return authorizationHeaderParts[1], nil
 }

@@ -4,9 +4,7 @@ import (
 	"context"
 	"enigmanations/cats-social/internal/user"
 	"enigmanations/cats-social/pkg/database"
-	"enigmanations/cats-social/pkg/jwt"
 	"fmt"
-	"time"
 
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -14,27 +12,21 @@ import (
 
 type UserRepository interface {
 	Get(ctx context.Context, id int) (*user.User, error)
+	GetByEmail(ctx context.Context, email string) (*user.User, error)
 	GetByEmailIfExists(ctx context.Context, email string) (*user.User, error)
-	Save(ctx context.Context, req user.User) (*user.User, *user.UserSession, error)
+	Save(ctx context.Context, model user.User) (*user.User, error)
 }
 
-type Database struct {
+type userRepositoryDB struct {
 	pool *pgxpool.Pool
 }
 
 func NewUserRepository(pool *pgxpool.Pool) UserRepository {
-	return &Database{pool: pool}
+	return &userRepositoryDB{pool: pool}
 }
 
-func (db *Database) Save(ctx context.Context, req user.User) (*user.User, *user.UserSession, error) {
-	sessionLengthSeconds := jwt.AccessTokenDurationSeconds
-
-	var (
-		result  *user.User
-		session = &user.UserSession{
-			ExpiresAt: time.Now().Add(sessionLengthSeconds),
-		}
-	)
+func (db *userRepositoryDB) Save(ctx context.Context, model user.User) (*user.User, error) {
+	var result *user.User
 
 	if err := database.BeginTransaction(ctx, db.pool, func(tx pgx.Tx) error {
 		// Create user
@@ -46,9 +38,9 @@ func (db *Database) Save(ctx context.Context, req user.User) (*user.User, *user.
 		userRow := db.pool.QueryRow(
 			ctx,
 			qUser,
-			req.Name,
-			req.Email,
-			req.Password,
+			model.Name,
+			model.Email,
+			model.Password,
 		)
 		u := new(user.User)
 		uErr := userRow.Scan(
@@ -60,46 +52,16 @@ func (db *Database) Save(ctx context.Context, req user.User) (*user.User, *user.
 			return fmt.Errorf("%w", uErr)
 		}
 
-		// Create user session
-		const qSession = `
-			INSERT INTO sessions (token, expires_at, user_id, created_at)
-			VALUES($1, $2, $3, now())
-			RETURNING token;
-		`
-
-		// Generate access token
-		token, err := jwt.GenerateAccessToken(uint64(u.Id), &req)
-		if err != nil {
-			return fmt.Errorf("%w", err)
-		}
-		session.Token = token
-
-		userSessionRow := db.pool.QueryRow(
-			ctx,
-			qSession,
-			token,
-			session.ExpiresAt,
-			u.Id,
-		)
-		uSession := new(user.UserSession)
-		uSessionErr := userSessionRow.Scan(
-			&uSession.Token,
-		)
-		if uSessionErr != nil {
-			return fmt.Errorf("%w", uSessionErr)
-		}
-
 		result = u
-		session = uSession
 		return nil
 	}); err != nil {
-		return nil, nil, fmt.Errorf("Save transaction %w", err)
+		return nil, fmt.Errorf("Save transaction %w", err)
 	}
 
-	return result, session, nil
+	return result, nil
 }
 
-func (db *Database) Get(ctx context.Context, id int) (*user.User, error) {
+func (db *userRepositoryDB) Get(ctx context.Context, id int) (*user.User, error) {
 	const q = `SELECT * FROM users WHERE id = $1 limit 1;`
 
 	row := db.pool.QueryRow(ctx, q, id)
@@ -121,10 +83,29 @@ type Exists struct {
 	exists bool
 }
 
-func (db *Database) GetByEmailIfExists(ctx context.Context, email string) (*user.User, error) {
+func (db *userRepositoryDB) GetByEmail(ctx context.Context, email string) (*user.User, error) {
+	const sql = `
+		SELECT u.id, u.name, u.email, u.password FROM users u WHERE u.email = $1 limit 1
+	`
+	row := db.pool.QueryRow(ctx, sql, email)
+	u := new(user.User)
+	err := row.Scan(
+		&u.Id,
+		&u.Name,
+		&u.Email,
+		&u.Password,
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	return u, nil
+}
+
+func (db *userRepositoryDB) GetByEmailIfExists(ctx context.Context, email string) (*user.User, error) {
 	const sql = `
 		SELECT EXISTS (
-			SELECT u.id, u.name, u.email FROM users u WHERE u.email = $1 limit 1
+			SELECT u.id, u.name, u.email, u.password FROM users u WHERE u.email = $1 limit 1
 		);`
 
 	row := db.pool.QueryRow(ctx, sql, email)
@@ -146,6 +127,7 @@ func (db *Database) GetByEmailIfExists(ctx context.Context, email string) (*user
 			&u.Id,
 			&u.Name,
 			&u.Email,
+			&u.Password,
 		)
 		if err != nil {
 			return nil, err
