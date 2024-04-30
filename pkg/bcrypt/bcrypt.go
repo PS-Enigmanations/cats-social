@@ -1,9 +1,18 @@
 package bcrypt
 
-import "golang.org/x/crypto/bcrypt"
+import (
+	"enigmanations/cats-social/pkg/env"
+
+	"golang.org/x/crypto/bcrypt"
+)
 
 func HashPassword(password string) (string, error) {
-	bytes, err := bcrypt.GenerateFromPassword([]byte(password), 8)
+	bcryptSalt, err := env.GetEnvInt("BCRYPT_SALT")
+	if err != nil {
+		return "", err
+	}
+
+	bytes, err := bcrypt.GenerateFromPassword([]byte(password), bcryptSalt)
 	return string(bytes), err
 }
 
