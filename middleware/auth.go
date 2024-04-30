@@ -2,6 +2,7 @@ package middleware
 
 import (
 	"context"
+	"fmt"
 	"log"
 	"net/http"
 
@@ -49,6 +50,9 @@ func (m *AuthMiddleware) ProtectedHandler(h httprouter.Handle) httprouter.Handle
 			http.Error(w, err.Error(), http.StatusUnauthorized)
 			return
 		}
+
+		// Set the HTTP Basic authentication header
+		w.Header().Add("Authorization", fmt.Sprintf("Bearer %s", encodedToken))
 
 		// Delegate request to the given handle
 		next := h
