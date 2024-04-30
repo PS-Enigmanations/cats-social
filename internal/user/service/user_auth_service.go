@@ -56,10 +56,17 @@ func (service *userAuthService) Login(req *request.UserLoginRequest) (*response.
 		}
 	}
 
-	// Create new session
-	userSession, err := service.authDB.Save(service.Context, userCredential)
-	if err != nil {
-		return nil, err
+	// Create or get session
+	var userSession *user.UserSession
+	userSessionFound, _ := service.authDB.GetIfExists(service.Context, userCredential.Id)
+	if userSessionFound != nil {
+		userSession = userSessionFound
+	} else {
+		userSessionCreated, err := service.authDB.Save(service.Context, userCredential)
+		if err != nil {
+			return nil, err
+		}
+		userSession = userSessionCreated
 	}
 
 	return response.UserToUserLoginResponse(*userCredential, *userSession), nil

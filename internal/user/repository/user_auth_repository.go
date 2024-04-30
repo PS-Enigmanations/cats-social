@@ -14,6 +14,7 @@ import (
 
 type UserAuthRepository interface {
 	Save(ctx context.Context, model *user.User) (*user.UserSession, error)
+	GetIfExists(ctx context.Context, userId int) (*user.UserSession, error)
 }
 
 type userAuthRepositoryDB struct {
@@ -67,4 +68,38 @@ func (db *userAuthRepositoryDB) Save(ctx context.Context, model *user.User) (*us
 	}
 
 	return session, nil
+}
+
+func (db *userAuthRepositoryDB) GetIfExists(ctx context.Context, userId int) (*user.UserSession, error) {
+	const sql = `
+		SELECT EXISTS (
+			SELECT s."token" from sessions s WHERE s.user_id = $1 LIMIT 1
+		);`
+
+	row := db.pool.QueryRow(ctx, sql, userId)
+	s := new(Exists)
+	err := row.Scan(
+		&s.exists,
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	if s.exists {
+		const sql = `
+			SELECT s."token" from sessions s WHERE s.user_id = $1 LIMIT 1
+		`
+		row := db.pool.QueryRow(ctx, sql, userId)
+		u := new(user.UserSession)
+		err := row.Scan(
+			&u.Token,
+		)
+		if err != nil {
+			return nil, err
+		}
+
+		return u, nil
+	}
+
+	return nil, nil
 }
