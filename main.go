@@ -65,7 +65,7 @@ func main() {
 	userController := userController.NewUserController(userService)
 
 	// Users api endpoint
-	router.POST("/v1/register", userController.UserCreateController)
+	router.POST("/v1/register", userController.UserRegisterController)
 
 	// Cats
 	// Setup cat dependency

@@ -14,7 +14,7 @@ import (
 )
 
 type UserController interface {
-	UserCreateController(w http.ResponseWriter, r *http.Request, _ httprouter.Params)
+	UserRegisterController(w http.ResponseWriter, r *http.Request, _ httprouter.Params)
 }
 
 type userController struct {
@@ -25,7 +25,7 @@ func NewUserController(svc service.UserService) UserController {
 	return &userController{Service: svc}
 }
 
-func (c *userController) UserCreateController(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
+func (c *userController) UserRegisterController(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 	var reqBody request.UserCreateRequest
 
 	if err := json.NewDecoder(r.Body).Decode(&reqBody); err != nil {
