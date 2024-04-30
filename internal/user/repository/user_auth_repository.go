@@ -37,7 +37,7 @@ func (db *userAuthRepositoryDB) Save(ctx context.Context, model *user.User) (*us
 		const sql = `
 			INSERT INTO sessions (token, expires_at, user_id, created_at)
 			VALUES($1, $2, $3, now())
-			RETURNING token;
+			RETURNING token, user_id;
 		`
 
 		// Generate access token
@@ -56,6 +56,7 @@ func (db *userAuthRepositoryDB) Save(ctx context.Context, model *user.User) (*us
 		uSession := new(user.UserSession)
 		uSessionErr := userSessionRow.Scan(
 			&uSession.Token,
+			&uSession.UserId,
 		)
 		if uSessionErr != nil {
 			return fmt.Errorf("%w", uSessionErr)
@@ -73,7 +74,7 @@ func (db *userAuthRepositoryDB) Save(ctx context.Context, model *user.User) (*us
 func (db *userAuthRepositoryDB) GetIfExists(ctx context.Context, userId int) (*user.UserSession, error) {
 	const sql = `
 		SELECT EXISTS (
-			SELECT s."token" from sessions s WHERE s.user_id = $1 and deleted_at is null LIMIT 1
+			SELECT s."token" from sessions s WHERE s.user_id = $1 AND deleted_at IS NULL LIMIT 1
 		);`
 
 	row := db.pool.QueryRow(ctx, sql, userId)
@@ -87,7 +88,7 @@ func (db *userAuthRepositoryDB) GetIfExists(ctx context.Context, userId int) (*u
 
 	if s.exists {
 		const sql = `
-			SELECT s."token" from sessions s WHERE s.user_id = $1 LIMIT 1
+			SELECT s."token" from sessions s WHERE s.user_id = $1 AND deleted_at IS NULL LIMIT 1
 		`
 		row := db.pool.QueryRow(ctx, sql, userId)
 		u := new(user.UserSession)

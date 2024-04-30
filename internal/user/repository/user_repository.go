@@ -63,7 +63,7 @@ func (db *userRepositoryDB) Save(ctx context.Context, model user.User) (*user.Us
 }
 
 func (db *userRepositoryDB) Get(ctx context.Context, id int) (*user.User, error) {
-	const q = `SELECT u.id, u.name, u.email FROM users u WHERE u.id = $1 limit 1;`
+	const q = `SELECT u.id, u.name, u.email FROM users u WHERE u.id = $1 AND deleted_at IS NULL LIMIT 1;`
 
 	row := db.pool.QueryRow(ctx, q, id)
 	u := new(user.User)
@@ -87,7 +87,7 @@ type Exists struct {
 
 func (db *userRepositoryDB) GetByEmail(ctx context.Context, email string) (*user.User, error) {
 	const sql = `
-		SELECT u.id, u.name, u.email, u.password FROM users u WHERE u.email = $1 limit 1
+		SELECT u.id, u.name, u.email, u.password FROM users u WHERE u.email = $1 AND deleted_at IS NULL LIMIT 1;
 	`
 	row := db.pool.QueryRow(ctx, sql, email)
 	u := new(user.User)
@@ -107,7 +107,7 @@ func (db *userRepositoryDB) GetByEmail(ctx context.Context, email string) (*user
 func (db *userRepositoryDB) GetByEmailIfExists(ctx context.Context, email string) (*user.User, error) {
 	const sql = `
 		SELECT EXISTS (
-			SELECT u.id, u.name, u.email, u.password FROM users u WHERE u.email = $1 limit 1
+			SELECT u.id, u.name, u.email, u.password FROM users u WHERE u.email = $1 AND deleted_at IS NULL LIMIT 1
 		);`
 
 	row := db.pool.QueryRow(ctx, sql, email)
@@ -121,7 +121,7 @@ func (db *userRepositoryDB) GetByEmailIfExists(ctx context.Context, email string
 
 	if e.exists {
 		const sql = `
-			SELECT u.id, u.name, u.email FROM users u WHERE u.email = $1 limit 1
+			SELECT u.id, u.name, u.email FROM users u WHERE u.email = $1 AND deleted_at IS NULL LIMIT 1;
 		`
 		row := db.pool.QueryRow(ctx, sql, email)
 		u := new(user.User)
