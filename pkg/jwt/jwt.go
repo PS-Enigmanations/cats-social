@@ -4,6 +4,7 @@ import (
 	"enigmanations/cats-social/internal/user"
 	"enigmanations/cats-social/pkg/env"
 	"errors"
+	"fmt"
 	"net/http"
 	"strings"
 	"time"
@@ -46,12 +47,10 @@ func GenerateSessionTokenJWT(
 
 func ValidateToken(encodedToken string) (*jwt.Token, error) {
 	token, err := jwt.Parse(encodedToken, func(token *jwt.Token) (interface{}, error) {
-		/**
-		if _, ok := token.Method.(*jwt.SigningMethodRSA); !ok {
-			// validate signing method
+		// validate signing method
+		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
 			return nil, fmt.Errorf("unexpected signing method: %v", token.Header["alg"])
 		}
-		*/
 
 		return []byte(env.GetSecretKey()), nil
 	})

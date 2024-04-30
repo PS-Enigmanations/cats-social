@@ -78,7 +78,7 @@ func main() {
 
 	// Cats api endpoint
 	router.GET("/v1/cats", middleware.ProtectedHandler(catController.CatGetController))
-	router.POST("/v1/cats", catController.CatCreateController)
+	router.POST("/v1/cats", middleware.ProtectedHandler(catController.CatCreateController))
 
 	// Run the server
 	appServeAddr := ":" + os.Getenv("APP_PORT")
