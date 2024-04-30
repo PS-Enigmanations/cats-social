@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"enigmanations/cats-social/middleware"
 	"enigmanations/cats-social/pkg/database"
 	"fmt"
 	"log"
@@ -76,7 +77,7 @@ func main() {
 	catController := catControllerInternal.NewCatController(catService)
 
 	// Cats api endpoint
-	router.GET("/v1/cats", catController.CatGetController)
+	router.GET("/v1/cats", middleware.ProtectedHandler(catController.CatGetController))
 	router.POST("/v1/cats", catController.CatCreateController)
 
 	// Run the server
