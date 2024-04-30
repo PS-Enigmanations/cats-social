@@ -31,18 +31,16 @@ func (service *userService) Create(req *request.UserRegisterRequest) (*response.
 		Name: req.Name,
 	}
 
-	var verifier = emailverifier.NewVerifier()
-
 	if req.Email != "" {
 		lowerCasedEmail := strings.ToLower(req.Email)
 		payload.Email = lowerCasedEmail
 
 		// Check email format
+		var verifier = emailverifier.NewVerifier()
 		ret, err := verifier.Verify(payload.Email)
 		if err != nil {
 			return nil, errs.UserErrEmailInvalidFormat
 		}
-
 		if !ret.Syntax.Valid {
 			return nil, errs.UserErrEmailInvalidFormat
 		}

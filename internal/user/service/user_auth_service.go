@@ -8,6 +8,8 @@ import (
 	"enigmanations/cats-social/internal/user/request"
 	"enigmanations/cats-social/internal/user/response"
 	"enigmanations/cats-social/pkg/bcrypt"
+
+	emailverifier "github.com/AfterShip/email-verifier"
 )
 
 type UserAuthService interface {
@@ -29,6 +31,15 @@ func (service *userAuthService) Login(req *request.UserLoginRequest) (*response.
 
 	// Check email
 	if req.Email != "" {
+		var verifier = emailverifier.NewVerifier()
+		ret, err := verifier.Verify(req.Email)
+		if err != nil {
+			return nil, errs.UserErrEmailInvalidFormat
+		}
+		if !ret.Syntax.Valid {
+			return nil, errs.UserErrEmailInvalidFormat
+		}
+
 		// Get user
 		userCredentialFound, err := service.userDB.GetByEmail(service.Context, req.Email)
 		if err != nil {

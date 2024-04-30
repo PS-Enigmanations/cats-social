@@ -87,6 +87,9 @@ func (c *userController) UserLogin(w http.ResponseWriter, r *http.Request, _ htt
 	result, err := c.AuthService.Login(&reqBody)
 	if err != nil {
 		switch {
+		case errors.Is(err, errs.UserErrEmailInvalidFormat):
+			http.Error(w, err.Error(), http.StatusBadRequest)
+			break
 		case errors.Is(err, errs.UserErrNotFound):
 			http.Error(w, err.Error(), http.StatusNotFound)
 			break
