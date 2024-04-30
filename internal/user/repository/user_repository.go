@@ -5,6 +5,7 @@ import (
 	"enigmanations/cats-social/internal/user"
 	"enigmanations/cats-social/pkg/database"
 	"fmt"
+	"log"
 
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -62,7 +63,7 @@ func (db *userRepositoryDB) Save(ctx context.Context, model user.User) (*user.Us
 }
 
 func (db *userRepositoryDB) Get(ctx context.Context, id int) (*user.User, error) {
-	const q = `SELECT * FROM users WHERE id = $1 limit 1;`
+	const q = `SELECT u.id, u.name, u.email FROM users u WHERE u.id = $1 limit 1;`
 
 	row := db.pool.QueryRow(ctx, q, id)
 	u := new(user.User)
@@ -73,6 +74,7 @@ func (db *userRepositoryDB) Get(ctx context.Context, id int) (*user.User, error)
 		&u.Email,
 	)
 	if err != nil {
+		log.Print("Error getting user", err)
 		return nil, err
 	}
 

@@ -1,15 +1,30 @@
 package middleware
 
 import (
+	"context"
 	"log"
 	"net/http"
 
+	userRepositoryInternal "enigmanations/cats-social/internal/user/repository"
 	"enigmanations/cats-social/pkg/jwt"
 
+	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/julienschmidt/httprouter"
 )
 
-func ProtectedHandler(h httprouter.Handle) httprouter.Handle {
+type AuthMiddleware struct {
+	pool *pgxpool.Pool
+	ctx  context.Context
+}
+
+func NewAuthMiddleware(pool *pgxpool.Pool, ctx context.Context) AuthMiddleware {
+	return AuthMiddleware{
+		pool: pool,
+		ctx:  ctx,
+	}
+}
+
+func (m *AuthMiddleware) ProtectedHandler(h httprouter.Handle) httprouter.Handle {
 	return func(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 		// Get access token from header
 		encodedToken, err := jwt.GetTokenFromAuthHeader(r)
@@ -20,8 +35,17 @@ func ProtectedHandler(h httprouter.Handle) httprouter.Handle {
 		}
 
 		// Verify access token
-		if _, err := jwt.ValidateToken(encodedToken); err != nil {
+		tokenData, err := jwt.ValidateToken(encodedToken)
+		if err != nil {
 			log.Printf("Invalid token: %v", err)
+			http.Error(w, err.Error(), http.StatusUnauthorized)
+			return
+		}
+
+		userRepository := userRepositoryInternal.NewUserRepository(m.pool)
+		_, err = userRepository.Get(m.ctx, tokenData.Uid)
+		if err != nil {
+			log.Printf("Invalid token (not found on store): %v", err)
 			http.Error(w, err.Error(), http.StatusUnauthorized)
 			return
 		}

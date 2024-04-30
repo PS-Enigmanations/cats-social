@@ -5,6 +5,7 @@ import (
 	"enigmanations/cats-social/pkg/env"
 	"errors"
 	"fmt"
+	"log"
 	"net/http"
 	"strings"
 	"time"
@@ -45,8 +46,19 @@ func GenerateSessionTokenJWT(
 	return tokenString, nil
 }
 
-func ValidateToken(encodedToken string) (*jwt.Token, error) {
-	token, err := jwt.Parse(encodedToken, func(token *jwt.Token) (interface{}, error) {
+type userClaims struct {
+	ExpiresAt int64 `json:"exp,omitempty"`
+	Uid       int   `json:"uid"`
+	jwt.MapClaims
+}
+
+type TokenData struct {
+	ExpiresAt int64 `json:"exp,omitempty"`
+	Uid       int   `json:"uid"`
+}
+
+func ValidateToken(encodedToken string) (*TokenData, error) {
+	token, err := jwt.ParseWithClaims(encodedToken, &userClaims{}, func(token *jwt.Token) (interface{}, error) {
 		// validate signing method
 		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
 			return nil, fmt.Errorf("unexpected signing method: %v", token.Header["alg"])
@@ -55,10 +67,24 @@ func ValidateToken(encodedToken string) (*jwt.Token, error) {
 		return []byte(env.GetSecretKey()), nil
 	})
 	if err != nil {
-		return token, err
+		return nil, err
 	}
 
-	return token, nil
+	var (
+		Uid int
+		Exp int64
+	)
+
+	// check claims
+	if claims, ok := token.Claims.(*userClaims); ok && token.Valid {
+		Uid = claims.Uid
+		Exp = claims.ExpiresAt
+	} else {
+		log.Println("Issue with claims")
+		return nil, errors.New("Issue with claims")
+	}
+
+	return &TokenData{Uid: Uid, ExpiresAt: Exp}, nil
 }
 
 func GetTokenFromAuthHeader(r *http.Request) (string, error) {

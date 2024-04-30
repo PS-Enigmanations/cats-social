@@ -60,6 +60,9 @@ func main() {
 	// Prepare router
 	router := httprouter.New()
 
+	// Prepare middleware
+	auth := middleware.NewAuthMiddleware(pgPool, context.Background())
+
 	// Users
 	userRepository := userRepositoryInternal.NewUserRepository(pgPool)
 	userService := userServiceInternal.NewUserService(userRepository, context.Background())
@@ -77,8 +80,8 @@ func main() {
 	catController := catControllerInternal.NewCatController(catService)
 
 	// Cats api endpoint
-	router.GET("/v1/cats", middleware.ProtectedHandler(catController.CatGetController))
-	router.POST("/v1/cats", middleware.ProtectedHandler(catController.CatCreateController))
+	router.GET("/v1/cats", auth.ProtectedHandler(catController.CatGetController))
+	router.POST("/v1/cats", auth.ProtectedHandler(catController.CatCreateController))
 
 	// Run the server
 	appServeAddr := ":" + os.Getenv("APP_PORT")
