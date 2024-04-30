@@ -4,8 +4,6 @@ import (
 	"time"
 )
 
-const UserSessionLengthSeconds = 134784000 // 1 year
-
 type UserSession struct {
 	Token     string    `json:"token"`
 	ExpiresAt time.Time `json:"expires_at"`

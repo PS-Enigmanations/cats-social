@@ -27,10 +27,10 @@ func NewUserAuthRepository(pool *pgxpool.Pool) UserAuthRepository {
 
 // Create user session
 func (db *userAuthRepositoryDB) Save(ctx context.Context, model *user.User) (*user.UserSession, error) {
-	sessionLengthSeconds := jwt.AccessTokenDurationSeconds
+	const sessionLengthSeconds = 134784000 // 1 year
 
 	var session = &user.UserSession{
-		ExpiresAt: time.Now().Add(sessionLengthSeconds),
+		ExpiresAt: time.Now().Add(time.Duration(sessionLengthSeconds) * time.Second),
 	}
 
 	if err := database.BeginTransaction(ctx, db.pool, func(tx pgx.Tx) error {
@@ -73,7 +73,7 @@ func (db *userAuthRepositoryDB) Save(ctx context.Context, model *user.User) (*us
 func (db *userAuthRepositoryDB) GetIfExists(ctx context.Context, userId int) (*user.UserSession, error) {
 	const sql = `
 		SELECT EXISTS (
-			SELECT s."token" from sessions s WHERE s.user_id = $1 LIMIT 1
+			SELECT s."token" from sessions s WHERE s.user_id = $1 and deleted_at is null LIMIT 1
 		);`
 
 	row := db.pool.QueryRow(ctx, sql, userId)
