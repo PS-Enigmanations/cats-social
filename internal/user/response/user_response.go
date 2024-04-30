@@ -15,13 +15,13 @@ type UserCreateResponse struct {
 
 const UserCreateSuccMessage = "User registered successfully"
 
-func UserToUserCreateResponse(u user.User, us user.UserSession) *UserCreateResponse {
+func UserToUserCreateResponse(u user.User, uSession user.UserSession) *UserCreateResponse {
 	return &UserCreateResponse{
 		Message: UserCreateSuccMessage,
 		Data: UserShow{
 			Email:       u.Email,
 			Name:        u.Name,
-			AccessToken: us.Token,
+			AccessToken: uSession.Token,
 		},
 	}
 }

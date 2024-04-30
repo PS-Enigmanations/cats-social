@@ -15,18 +15,18 @@ import (
 type UserRepository interface {
 	Get(ctx context.Context, id int) (*user.User, error)
 	GetByEmailIfExists(ctx context.Context, email string) (*user.User, error)
-	Save(ctx context.Context, req user.User) (*user.User, *user.UserSession, error)
+	Save(ctx context.Context, model user.User) (*user.User, *user.UserSession, error)
 }
 
-type Database struct {
+type userRepositoryDB struct {
 	pool *pgxpool.Pool
 }
 
 func NewUserRepository(pool *pgxpool.Pool) UserRepository {
-	return &Database{pool: pool}
+	return &userRepositoryDB{pool: pool}
 }
 
-func (db *Database) Save(ctx context.Context, req user.User) (*user.User, *user.UserSession, error) {
+func (db *userRepositoryDB) Save(ctx context.Context, model user.User) (*user.User, *user.UserSession, error) {
 	sessionLengthSeconds := jwt.AccessTokenDurationSeconds
 
 	var (
@@ -46,9 +46,9 @@ func (db *Database) Save(ctx context.Context, req user.User) (*user.User, *user.
 		userRow := db.pool.QueryRow(
 			ctx,
 			qUser,
-			req.Name,
-			req.Email,
-			req.Password,
+			model.Name,
+			model.Email,
+			model.Password,
 		)
 		u := new(user.User)
 		uErr := userRow.Scan(
@@ -68,7 +68,7 @@ func (db *Database) Save(ctx context.Context, req user.User) (*user.User, *user.
 		`
 
 		// Generate access token
-		token, err := jwt.GenerateAccessToken(uint64(u.Id), &req)
+		token, err := jwt.GenerateAccessToken(uint64(u.Id), &model)
 		if err != nil {
 			return fmt.Errorf("%w", err)
 		}
@@ -99,7 +99,7 @@ func (db *Database) Save(ctx context.Context, req user.User) (*user.User, *user.
 	return result, session, nil
 }
 
-func (db *Database) Get(ctx context.Context, id int) (*user.User, error) {
+func (db *userRepositoryDB) Get(ctx context.Context, id int) (*user.User, error) {
 	const q = `SELECT * FROM users WHERE id = $1 limit 1;`
 
 	row := db.pool.QueryRow(ctx, q, id)
@@ -121,7 +121,7 @@ type Exists struct {
 	exists bool
 }
 
-func (db *Database) GetByEmailIfExists(ctx context.Context, email string) (*user.User, error) {
+func (db *userRepositoryDB) GetByEmailIfExists(ctx context.Context, email string) (*user.User, error) {
 	const sql = `
 		SELECT EXISTS (
 			SELECT u.id, u.name, u.email FROM users u WHERE u.email = $1 limit 1

@@ -14,7 +14,7 @@ import (
 )
 
 type UserService interface {
-	Create(req *request.UserCreateRequest) (*response.UserCreateResponse, error)
+	Create(req *request.UserRegisterRequest) (*response.UserCreateResponse, error)
 }
 
 type userService struct {
@@ -26,7 +26,7 @@ func NewUserService(db repository.UserRepository, ctx context.Context) UserServi
 	return &userService{db: db, Context: ctx}
 }
 
-func (service *userService) Create(req *request.UserCreateRequest) (*response.UserCreateResponse, error) {
+func (service *userService) Create(req *request.UserRegisterRequest) (*response.UserCreateResponse, error) {
 	var payload = &user.User{
 		Name: req.Name,
 	}

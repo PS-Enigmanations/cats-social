@@ -14,19 +14,21 @@ import (
 )
 
 type UserController interface {
-	UserRegisterController(w http.ResponseWriter, r *http.Request, _ httprouter.Params)
+	UserRegister(w http.ResponseWriter, r *http.Request, _ httprouter.Params)
+	UserLogin(w http.ResponseWriter, r *http.Request, _ httprouter.Params)
 }
 
 type userController struct {
-	Service service.UserService
+	Service     service.UserService
+	AuthService service.UserAuthService
 }
 
-func NewUserController(svc service.UserService) UserController {
-	return &userController{Service: svc}
+func NewUserController(svc service.UserService, authSvc service.UserAuthService) UserController {
+	return &userController{Service: svc, AuthService: authSvc}
 }
 
-func (c *userController) UserRegisterController(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
-	var reqBody request.UserCreateRequest
+func (c *userController) UserRegister(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
+	var reqBody request.UserRegisterRequest
 
 	if err := json.NewDecoder(r.Body).Decode(&reqBody); err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
@@ -64,5 +66,26 @@ func (c *userController) UserRegisterController(w http.ResponseWriter, r *http.R
 		log.Fatalf("Error happened in JSON marshal. Err: %s", err)
 	}
 	w.Write(jsonResp)
+	return
+}
+
+func (c *userController) UserLogin(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
+	var reqBody request.UserLoginRequest
+
+	if err := json.NewDecoder(r.Body).Decode(&reqBody); err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	validate := validator.New()
+	err := validate.Struct(reqBody)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	w.WriteHeader(http.StatusCreated)
+	w.Header().Add("Content-Type", "application/json")
+
 	return
 }
