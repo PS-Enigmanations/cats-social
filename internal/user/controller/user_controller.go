@@ -84,8 +84,30 @@ func (c *userController) UserLogin(w http.ResponseWriter, r *http.Request, _ htt
 		return
 	}
 
+	result, err := c.AuthService.Login(&reqBody)
+	if err != nil {
+		switch {
+		case errors.Is(err, errs.UserErrNotFound):
+			http.Error(w, err.Error(), http.StatusNotFound)
+			break
+		case errors.Is(err, errs.WrongPassword):
+			http.Error(w, err.Error(), http.StatusBadRequest)
+			break
+		default:
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			break
+		}
+		return
+	}
+
 	w.WriteHeader(http.StatusCreated)
 	w.Header().Add("Content-Type", "application/json")
+
+	jsonResp, err := json.Marshal(result)
+	if err != nil {
+		log.Fatalf("Error happened in JSON marshal. Err: %s", err)
+	}
+	w.Write(jsonResp)
 
 	return
 }

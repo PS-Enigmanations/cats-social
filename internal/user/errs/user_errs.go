@@ -8,6 +8,7 @@ import (
 var (
 	UserErrEmailExist         = errors.New("Email already exists")
 	UserErrEmailInvalidFormat = errors.New("Email format invalid")
+	UserErrNotFound           = errors.New("User not found")
 )
 
 type UserError struct {

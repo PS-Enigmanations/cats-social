@@ -67,10 +67,10 @@ func (service *userService) Create(req *request.UserRegisterRequest) (*response.
 		Password: payload.Password,
 	}
 
-	user, userSession, err := service.db.Save(service.Context, model)
+	user, err := service.db.Save(service.Context, model)
 	if err != nil {
 		return nil, err
 	}
 
-	return response.UserToUserCreateResponse(*user, *userSession), nil
+	return response.UserToUserCreateResponse(*user), nil
 }

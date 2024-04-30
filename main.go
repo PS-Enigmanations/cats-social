@@ -63,7 +63,7 @@ func main() {
 	userRepository := userRepositoryInternal.NewUserRepository(pgPool)
 	userService := userServiceInternal.NewUserService(userRepository, context.Background())
 	userAuthRepository := userRepositoryInternal.NewUserAuthRepository(pgPool)
-	userAuthService := userServiceInternal.NewUserAuthService(userAuthRepository, context.Background())
+	userAuthService := userServiceInternal.NewUserAuthService(userRepository, userAuthRepository, context.Background())
 	userController := userControllerInternal.NewUserController(userService, userAuthService)
 
 	// Users api endpoint
