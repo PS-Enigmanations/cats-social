@@ -80,15 +80,14 @@ func main() {
 	// Cats
 	catRepository := catRepositoryInternal.NewCatRepository(pgPool)
 	catService := catServiceInternal.NewCatService(catRepository, ctx)
-	catController := catControllerInternal.NewCatController(catService)
 	catMatchRepository := catRepositoryInternal.NewCatMatchRepository(pgPool)
 	catMatchService := catServiceInternal.NewCatMatchService(catMatchRepository, ctx)
-	catMatchController := catControllerInternal.NewCatMatchController(catMatchService)
+	catController := catControllerInternal.NewCatController(catService, catMatchService)
 
 	// Cats api endpoint
 	router.GET("/v1/cats", auth.ProtectedHandler(catController.CatGetController))
 	router.POST("/v1/cats", auth.ProtectedHandler(catController.CatCreateController))
-	router.POST("/v1/cat/match", auth.ProtectedHandler(catMatchController.CatMatchCreate))
+	router.POST("/v1/cat/match", auth.ProtectedHandler(catController.CatMatchCreate))
 
 	// Run the server
 	appServeAddr := ":" + os.Getenv("APP_PORT")
