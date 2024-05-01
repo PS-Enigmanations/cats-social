@@ -9,7 +9,10 @@ import (
 
 type CatService interface {
 	GetAll() ([]*CatResponse, error)
+	FindById(catId int) (*CatResponse, error)
 	Create(payload *cat.CatCreateRequest) (*CatResponse, error)
+	Delete(catId int) error
+	DeleteImageUrls(catId int) error
 }
 
 type catService struct {
@@ -58,7 +61,44 @@ func (service *catService) Create(payload *cat.CatCreateRequest) (*CatResponse, 
 		return nil, err
 	}
 
+	err = service.db.SaveImageUrls(service.Context, cat.Id, payload.ImageUrls)
+	if err != nil {
+		return nil, err
+	}
+
+	cat.ImageUrls = payload.ImageUrls
+
 	return CatToCatResponse(*cat), nil
+}
+
+func (service *catService) FindById(catId int) (*CatResponse, error) {
+	cat, err := service.db.FindById(service.Context, catId)
+	if err != nil {
+		return nil, err
+	}
+
+	return CatToCatResponse(*cat), nil
+}
+
+func (service *catService) Delete(catId int) error {
+	_, err := service.db.FindById(service.Context, catId)
+	if err != nil {
+		return err
+	}
+
+	err = service.db.DeleteImageUrls(service.Context, catId)
+	if err != nil {
+		return err
+	}
+	err = service.db.Delete(service.Context, catId)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func (service *catService) DeleteImageUrls(catId int) error {
+	return service.db.DeleteImageUrls(service.Context, catId)
 }
 
 type CatResponse struct {
@@ -68,6 +108,7 @@ type CatResponse struct {
 	Sex         string
 	AgeInMonth  int
 	Description string
+	ImageUrls   []string
 }
 
 // convert 'Cat' model to 'CatResponse' DTO
@@ -79,5 +120,6 @@ func CatToCatResponse(c cat.Cat) *CatResponse {
 		Sex:         string(c.Sex),
 		AgeInMonth:  c.AgeInMonth,
 		Description: c.Description,
+		ImageUrls:   c.ImageUrls,
 	}
 }

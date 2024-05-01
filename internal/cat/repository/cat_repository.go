@@ -12,7 +12,11 @@ import (
 
 type CatRepository interface {
 	GetAll(ctx context.Context) ([]*cat.Cat, error)
+	FindById(ctx context.Context, catId int) (*cat.Cat, error)
 	Save(ctx context.Context, model cat.Cat) (*cat.Cat, error)
+	SaveImageUrls(ctx context.Context, catId int, urls []string) error
+	Delete(ctx context.Context, catId int) error
+	DeleteImageUrls(ctx context.Context, catId int) error
 }
 
 type Database struct {
@@ -77,6 +81,29 @@ func (db *Database) GetAll(ctx context.Context) ([]*cat.Cat, error) {
 	return cats, nil
 }
 
+func (db *Database) FindById(ctx context.Context, catId int) (*cat.Cat, error) {
+	const catQuery = `
+		SELECT id, name, race, sex, age_in_month, description from cats WHERE id = $1;
+	`
+	row := db.pool.QueryRow(ctx, catQuery, catId)
+
+	c := new(cat.Cat)
+	err := row.Scan(
+		&c.Id,
+		&c.Name,
+		&c.Race,
+		&c.Sex,
+		&c.AgeInMonth,
+		&c.Description,
+	)
+
+	if err != nil {
+		return nil, err
+	}
+
+	return c, nil
+}
+
 func (db *Database) Save(ctx context.Context, model cat.Cat) (*cat.Cat, error) {
 	var result *cat.Cat
 
@@ -124,4 +151,47 @@ func (db *Database) Save(ctx context.Context, model cat.Cat) (*cat.Cat, error) {
 
 	// return 'c' and nil if no error found
 	return result, nil
+}
+
+func (db *Database) SaveImageUrls(ctx context.Context, catId int, urls []string) error {
+	if err := database.BeginTransaction(ctx, db.pool, func(tx pgx.Tx) error {
+		const q = `INSERT into cat_images
+			("cat_id", "url")
+			VALUES ($1, $2);`
+
+		for _, url := range urls {
+			_, err := tx.Exec(ctx, q, catId, url)
+			if err != nil {
+				return fmt.Errorf("SaveImageUrls %w", err)
+			}
+		}
+
+		return nil
+	}); err != nil {
+		return fmt.Errorf("SaveImageUrls transaction %w", err)
+	}
+
+	return nil
+}
+
+func (db *Database) Delete(ctx context.Context, catId int) error {
+	const q = `DELETE FROM cats WHERE id = $1`
+
+	_, err := db.pool.Exec(ctx, q, catId)
+	if err != nil {
+		return fmt.Errorf("Delete %w", err)
+	}
+
+	return nil
+}
+
+func (db *Database) DeleteImageUrls(ctx context.Context, catId int) error {
+	const q = `DELETE FROM cat_images WHERE cat_id = $1`
+
+	_, err := db.pool.Exec(ctx, q, catId)
+	if err != nil {
+		return fmt.Errorf("Delete Image Urls %w", err)
+	}
+
+	return nil
 }

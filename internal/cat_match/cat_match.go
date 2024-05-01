@@ -2,6 +2,7 @@ package catmatch
 
 import (
 	"enigmanations/cats-social/internal/cat"
+	"enigmanations/cats-social/internal/user"
 	"time"
 )
 
@@ -11,7 +12,8 @@ type CatMatch struct {
 	Email    string `json:"email"`
 	Password string `json:"password"`
 
-	Cat cat.Cat
+	Cat  cat.Cat
+	User user.User
 
 	CreatedAt time.Time `json:"created_at"`
 	UpdatedAt time.Time `json:"updated_at"`

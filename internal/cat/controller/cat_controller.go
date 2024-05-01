@@ -5,6 +5,7 @@ import (
 	"enigmanations/cats-social/internal/cat/service"
 	"log"
 	"net/http"
+	"strconv"
 
 	"enigmanations/cats-social/internal/cat"
 
@@ -35,7 +36,6 @@ func (c *catController) CatGetController(w http.ResponseWriter, r *http.Request,
 
 func (c *catController) CatCreateController(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
 	var reqBody cat.CatCreateRequest
-
 	if err := json.NewDecoder(r.Body).Decode(&reqBody); err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
@@ -47,7 +47,6 @@ func (c *catController) CatCreateController(w http.ResponseWriter, r *http.Reque
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
-
 	// send data to service layer to further process (create record)
 	cat, err := c.Service.Create(&reqBody)
 	if err != nil {
@@ -63,5 +62,20 @@ func (c *catController) CatCreateController(w http.ResponseWriter, r *http.Reque
 		log.Fatalf("Error happened in JSON marshal. Err: %s", err)
 	}
 	w.Write(jsonResp)
+	return
+}
+
+func (c *catController) CatDeleteController(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
+	// get cat id from request params
+	catId := p.ByName("id")
+	id, err := strconv.Atoi(catId)
+	err = c.Service.Delete(id)
+	w.Header().Add("Content-Type", "application/json")
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
+	w.WriteHeader(http.StatusOK)
 	return
 }
