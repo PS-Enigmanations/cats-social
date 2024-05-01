@@ -34,7 +34,7 @@ func IsAuthenticated(r *http.Request) bool {
 }
 
 // CtxGetCurrentUser is a wrapper over the private User context key
-func CtxGetCurrentUser(ctx context.Context) *userValue {
+func GetCurrentUser(ctx context.Context) *userValue {
 	val := ctx.Value(CtxKeyAuth)
 	v, ok := val.(*userValue)
 	if !ok {
