@@ -36,7 +36,7 @@ func (db *userRepositoryDB) Save(ctx context.Context, model user.User) (*user.Us
 			VALUES($1, $2, $3, now())
 			RETURNING id, email, name;
 		`
-		userRow := db.pool.QueryRow(
+		userRow := tx.QueryRow(
 			ctx,
 			qUser,
 			model.Name,
