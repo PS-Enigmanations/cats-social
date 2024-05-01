@@ -46,7 +46,7 @@ func (db *userAuthRepositoryDB) Save(ctx context.Context, model *user.User) (*us
 			return fmt.Errorf("%w", err)
 		}
 
-		userSessionRow := db.pool.QueryRow(
+		userSessionRow := tx.QueryRow(
 			ctx,
 			sql,
 			token,
