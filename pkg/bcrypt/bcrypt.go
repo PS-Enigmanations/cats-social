@@ -12,6 +12,11 @@ func HashPassword(password string) (string, error) {
 		return "", err
 	}
 
+	// Increase salt on production
+	if env.IsProduction() {
+		bcryptSalt += 3 // 11
+	}
+
 	bytes, err := bcrypt.GenerateFromPassword([]byte(password), bcryptSalt)
 	return string(bytes), err
 }
