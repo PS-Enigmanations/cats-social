@@ -15,11 +15,11 @@ dev: build up
 
 ## build: run build on dev environment.
 build:
-	go build .
+	GOARCH=amd64 GOOS=darwin go build -o main .
 
 ## up: run docker-compose up with dev environment.
 up:
-	JWT_SECRET=a-very-secretive-secret-key ./cats-social
+	JWT_SECRET=a-very-secretive-secret-key ./main
 
 ## run golang-migrate up
 migrateup:
