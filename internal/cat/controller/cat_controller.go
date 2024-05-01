@@ -2,7 +2,6 @@ package controller
 
 import (
 	"encoding/json"
-	"enigmanations/cats-social/internal/cat/request"
 	"enigmanations/cats-social/internal/cat/service"
 	"log"
 	"net/http"
@@ -14,12 +13,11 @@ import (
 )
 
 type catController struct {
-	Service      service.CatService
-	MatchService service.CatMatchService
+	Service service.CatService
 }
 
-func NewCatController(svc service.CatService, svcMatch service.CatMatchService) catController {
-	return catController{Service: svc, MatchService: svcMatch}
+func NewCatController(svc service.CatService) catController {
+	return catController{Service: svc}
 }
 
 func (c *catController) CatGetController(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
@@ -65,26 +63,5 @@ func (c *catController) CatCreateController(w http.ResponseWriter, r *http.Reque
 		log.Fatalf("Error happened in JSON marshal. Err: %s", err)
 	}
 	w.Write(jsonResp)
-	return
-}
-
-func (c *catController) CatMatchCreate(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
-	var reqBody request.CatMatchRequest
-
-	if err := json.NewDecoder(r.Body).Decode(&reqBody); err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
-		return
-	}
-
-	validate := validator.New()
-	err := validate.Struct(reqBody)
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
-		return
-	}
-
-	w.WriteHeader(http.StatusCreated)
-	w.Header().Add("Content-Type", "application/json")
-
 	return
 }
