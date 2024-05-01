@@ -15,6 +15,11 @@ import (
 	catRepositoryInternal "enigmanations/cats-social/internal/cat/repository"
 	catServiceInternal "enigmanations/cats-social/internal/cat/service"
 
+	// Cat Match
+	catMatchControllerInternal "enigmanations/cats-social/internal/cat_match/controller"
+	catMatchRepositoryInternal "enigmanations/cats-social/internal/cat_match/repository"
+	catMatchServiceInternal "enigmanations/cats-social/internal/cat_match/service"
+
 	// User
 	userControllerInternal "enigmanations/cats-social/internal/user/controller"
 	userRepositoryInternal "enigmanations/cats-social/internal/user/repository"
@@ -80,14 +85,19 @@ func main() {
 	// Cats
 	catRepository := catRepositoryInternal.NewCatRepository(pgPool)
 	catService := catServiceInternal.NewCatService(catRepository, ctx)
-	catMatchRepository := catRepositoryInternal.NewCatMatchRepository(pgPool)
-	catMatchService := catServiceInternal.NewCatMatchService(catMatchRepository, ctx)
-	catController := catControllerInternal.NewCatController(catService, catMatchService)
+	catController := catControllerInternal.NewCatController(catService)
 
 	// Cats api endpoint
 	router.GET("/v1/cats", auth.ProtectedHandler(catController.CatGetController))
 	router.POST("/v1/cats", auth.ProtectedHandler(catController.CatCreateController))
-	router.POST("/v1/cat/match", auth.ProtectedHandler(catController.CatMatchCreate))
+
+	// Cat Match
+	catMatchRepository := catMatchRepositoryInternal.NewCatMatchRepository(pgPool)
+	catMatchService := catMatchServiceInternal.NewCatMatchService(catMatchRepository, ctx)
+	catMatchController := catMatchControllerInternal.NewCatMatchController(catMatchService)
+
+	// Cat Match api endpoint
+	router.POST("/v1/cat/match", auth.ProtectedHandler(catMatchController.CatMatchCreate))
 
 	// Run the server
 	appServeAddr := ":" + os.Getenv("APP_PORT")
