@@ -103,7 +103,7 @@ func (c *userController) UserLogin(w http.ResponseWriter, r *http.Request, _ htt
 		return
 	}
 
-	w.WriteHeader(http.StatusCreated)
+	w.WriteHeader(http.StatusOK)
 	w.Header().Add("Content-Type", "application/json")
 
 	jsonResp, err := json.Marshal(result)
