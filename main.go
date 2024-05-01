@@ -93,7 +93,13 @@ func main() {
 
 	// Cat Match
 	catMatchRepository := catMatchRepositoryInternal.NewCatMatchRepository(pgPool)
-	catMatchService := catMatchServiceInternal.NewCatMatchService(catMatchRepository, ctx)
+	catMatchService := catMatchServiceInternal.NewCatMatchService(
+		&catMatchServiceInternal.CatMatchServiceDependency{
+			User:     userRepository,
+			CatMatch: catMatchRepository,
+		},
+		ctx,
+	)
 	catMatchController := catMatchControllerInternal.NewCatMatchController(catMatchService)
 
 	// Cat Match api endpoint

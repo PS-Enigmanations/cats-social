@@ -6,8 +6,12 @@ import (
 )
 
 var (
-	CatMatchErrGender = errors.New("Cat genders should not equal")
-	CatMatchErrOwner  = errors.New("Cat is from the same owner")
+	CatMatchErrGender         = errors.New("Cat genders should not equal")
+	CatMatchErrOwner          = errors.New("Cat is from the same owner")
+	CatMatchErrNotFound       = errors.New("Cat not found")
+	CatMatchErrOwnerNotFound  = errors.New("Cat owner not found")
+	CatMatchErrInvalidAuthor  = errors.New("Cat owner is equal with matches")
+	CatMatchErrAlreadyMatched = errors.New("Cat already matched")
 )
 
 type CatMatchError struct {
