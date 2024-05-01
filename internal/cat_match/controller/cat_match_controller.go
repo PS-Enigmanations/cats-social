@@ -41,8 +41,8 @@ func (c *catMatchController) CatMatchCreate(w http.ResponseWriter, r *http.Reque
 	}
 
 	currUser := user.GetCurrentUser(r.Context())
-	err = c.Service.Create(&reqBody, int64(currUser.Uid))
-	if err != nil {
+
+	if err = c.Service.Create(&reqBody, int64(currUser.Uid)); err != nil {
 		switch {
 		case errors.Is(err, errs.CatMatchErrNotFound),
 			errors.Is(err, errs.CatMatchErrOwner):
