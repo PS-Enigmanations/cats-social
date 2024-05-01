@@ -88,12 +88,13 @@ func (db *userAuthRepositoryDB) GetIfExists(ctx context.Context, userId int) (*u
 
 	if s.exists {
 		const sql = `
-			SELECT s."token" from sessions s WHERE s.user_id = $1 AND deleted_at IS NULL LIMIT 1
+			SELECT s."token", s.user_id from sessions s WHERE s.user_id = $1 AND deleted_at IS NULL LIMIT 1
 		`
 		row := db.pool.QueryRow(ctx, sql, userId)
 		u := new(user.UserSession)
 		err := row.Scan(
 			&u.Token,
+			&u.UserId,
 		)
 		if err != nil {
 			return nil, err

@@ -57,17 +57,20 @@ func main() {
 		fmt.Errorf("pool.Exec() error: %v", err)
 	}
 
+	// Shared ctx
+	ctx := context.Background()
+
 	// Prepare router
 	router := httprouter.New()
 
 	// Prepare middleware
-	auth := middleware.NewAuthMiddleware(pgPool, context.Background())
+	auth := middleware.NewAuthMiddleware(pgPool, ctx)
 
 	// Users
 	userRepository := userRepositoryInternal.NewUserRepository(pgPool)
-	userService := userServiceInternal.NewUserService(userRepository, context.Background())
+	userService := userServiceInternal.NewUserService(userRepository, ctx)
 	userAuthRepository := userRepositoryInternal.NewUserAuthRepository(pgPool)
-	userAuthService := userServiceInternal.NewUserAuthService(userRepository, userAuthRepository, context.Background())
+	userAuthService := userServiceInternal.NewUserAuthService(userRepository, userAuthRepository, ctx)
 	userController := userControllerInternal.NewUserController(userService, userAuthService)
 
 	// Users api endpoint
@@ -76,7 +79,7 @@ func main() {
 
 	// Cats
 	catRepository := catRepositoryInternal.NewCatRepository(pgPool)
-	catService := catServiceInternal.NewCatService(catRepository, context.Background())
+	catService := catServiceInternal.NewCatService(catRepository, ctx)
 	catController := catControllerInternal.NewCatController(catService)
 
 	// Cats api endpoint

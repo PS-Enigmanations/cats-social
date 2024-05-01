@@ -6,6 +6,7 @@ import (
 	"log"
 	"net/http"
 
+	"enigmanations/cats-social/internal/user"
 	userRepositoryInternal "enigmanations/cats-social/internal/user/repository"
 	"enigmanations/cats-social/pkg/jwt"
 
@@ -54,8 +55,11 @@ func (m *AuthMiddleware) ProtectedHandler(h httprouter.Handle) httprouter.Handle
 		// Set the HTTP Basic authentication header
 		w.Header().Add("Authorization", fmt.Sprintf("Bearer %s", encodedToken))
 
+		// Set authenticaton context
+		ctx := user.NewAuthenticationContext(r.Context(), tokenData.Uid)
+
 		// Delegate request to the given handle
 		next := h
-		next(w, r, ps)
+		next(w, r.WithContext(ctx), ps)
 	}
 }

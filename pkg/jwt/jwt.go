@@ -46,7 +46,7 @@ func GenerateSessionTokenJWT(
 	return tokenString, nil
 }
 
-type userClaims struct {
+type Claims struct {
 	ExpiresAt int64 `json:"exp,omitempty"`
 	Uid       int   `json:"uid"`
 	jwt.MapClaims
@@ -58,7 +58,7 @@ type TokenData struct {
 }
 
 func ValidateToken(encodedToken string) (*TokenData, error) {
-	token, err := jwt.ParseWithClaims(encodedToken, &userClaims{}, func(token *jwt.Token) (interface{}, error) {
+	token, err := jwt.ParseWithClaims(encodedToken, &Claims{}, func(token *jwt.Token) (interface{}, error) {
 		// validate signing method
 		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
 			return nil, fmt.Errorf("unexpected signing method: %v", token.Header["alg"])
@@ -76,7 +76,7 @@ func ValidateToken(encodedToken string) (*TokenData, error) {
 	)
 
 	// check claims
-	if claims, ok := token.Claims.(*userClaims); ok && token.Valid {
+	if claims, ok := token.Claims.(*Claims); ok && token.Valid {
 		Uid = claims.Uid
 		Exp = claims.ExpiresAt
 	} else {
