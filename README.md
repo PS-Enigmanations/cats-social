@@ -39,6 +39,11 @@ go mod download
 make dev
 ```
 
+**Docs**
+
+1. Please install plugin `REST Client` at vscode
+2. After create api, please create api documentation at folder `docs`. See example at `docs/auth.http`
+
 **API**:
 
 - http://localhost:8080/v1/register (`POST`)
