@@ -13,12 +13,23 @@ install: go-get
 ## dev: run build and up on dev environment.
 dev: build up
 
+## prod: run build and up on production environment.
+prod: build-prod up
+
 ## build: run build on dev environment.
 build:
+	GOARCH=amd64 GOOS=darwin go build -o main .
+
+## build: run build on dev environment.
+build-prod:
 	GOARCH=amd64 GOOS=linux go build -o main .
 
 ## up: run docker-compose up with dev environment.
 up:
+	JWT_SECRET=a-very-secretive-secret-key ./main
+
+## up: run docker-compose up with dev environment.
+up-prod:
 	JWT_SECRET=a-very-secretive-secret-key ./main
 
 ## run golang-migrate up
