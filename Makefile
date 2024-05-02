@@ -20,7 +20,7 @@ prod: build-prod up
 build:
 	GOARCH=amd64 GOOS=darwin go build -o main .
 
-## build: run build on dev environment.
+## build: run build on production environment.
 build-prod:
 	GOARCH=amd64 GOOS=linux go build -o main .
 
@@ -28,7 +28,7 @@ build-prod:
 up:
 	JWT_SECRET=a-very-secretive-secret-key ./main
 
-## up: run docker-compose up with dev environment.
+## up: run docker-compose up with productin environment.
 up-prod:
 	JWT_SECRET=a-very-secretive-secret-key ./main
 
