@@ -84,7 +84,7 @@ func (db *catMatchRepositoryDB) GetAssociationByCatId(ctx context.Context, id in
 
 func (db *catMatchRepositoryDB) UpdateCatAlreadyMatches(ctx context.Context, ids []int, matched bool, tx pgx.Tx) error {
 	const sql = `
-		UPDATE cat SET is_already_matched=@alreadyMatched WHERE id = @catId;
+		UPDATE cats SET is_already_matched=@alreadyMatched WHERE id = @catId;
 	`
 	batch := &pgx.Batch{}
 	for _, id := range ids {

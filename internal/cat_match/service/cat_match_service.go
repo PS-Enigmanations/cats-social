@@ -66,11 +66,11 @@ func (svc *catMatchService) validate(req *request.CatMatchRequest) error {
 		return err
 	}
 
-	// Ensure cat owner between receiver -> issuer should be not equal
+	// Ensure cat owner between issuer -> receiver should be not equal
 	if matchCatFound.UserId == userCatFound.UserId {
 		return errs.CatMatchErrInvalidAuthor
 	}
-	// Ensure cat owner between issuer -> receiver should be not equal
+	// Ensure cat owner between receiver -> issuer should be not equal
 	if userCatFound.UserId == matchCatFound.UserId {
 		return errs.CatMatchErrInvalidAuthor
 	}
