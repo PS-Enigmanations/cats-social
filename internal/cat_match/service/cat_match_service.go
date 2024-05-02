@@ -7,7 +7,12 @@ import (
 	"enigmanations/cats-social/internal/cat_match/repository"
 	"enigmanations/cats-social/internal/cat_match/request"
 	userRepository "enigmanations/cats-social/internal/user/repository"
+	"enigmanations/cats-social/pkg/database"
+	"fmt"
 	"reflect"
+
+	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgxpool"
 )
 
 type CatMatchService interface {
@@ -19,12 +24,13 @@ type CatMatchServiceDependency struct {
 	User     userRepository.UserRepository
 }
 type catMatchService struct {
+	pool    *pgxpool.Pool
 	repo    *CatMatchServiceDependency
 	Context context.Context
 }
 
-func NewCatMatchService(repo *CatMatchServiceDependency, ctx context.Context) CatMatchService {
-	return &catMatchService{repo: repo, Context: ctx}
+func NewCatMatchService(ctx context.Context, pool *pgxpool.Pool, repo *CatMatchServiceDependency) CatMatchService {
+	return &catMatchService{pool: pool, repo: repo, Context: ctx}
 }
 
 func (svc *catMatchService) validate(req *request.CatMatchRequest) error {
@@ -87,28 +93,36 @@ func (svc *catMatchService) Create(req *request.CatMatchRequest, actorId int64) 
 		return err
 	}
 
-	// Update already match
-	err = repo.CatMatch.UpdateCatAlreadyMatches(
-		svc.Context,
-		[]int{
-			int(req.MatchCatId),
-			int(req.UserCatId),
-		},
-		true,
-	)
-	if err != nil {
-		return err
-	}
+	if err := database.BeginTransaction(svc.Context, svc.pool, func(tx pgx.Tx) error {
+		// Create cat matches
+		model := catmatch.CatMatch{
+			IssuedBy:   actorId,
+			MatchCatId: req.MatchCatId,
+			UserCatId:  req.UserCatId,
+			Message:    req.Message,
+		}
+		err = repo.CatMatch.Save(svc.Context, &model, tx)
+		if err != nil {
+			return err
+		}
 
-	model := catmatch.CatMatch{
-		IssuedBy:   actorId,
-		MatchCatId: req.MatchCatId,
-		UserCatId:  req.UserCatId,
-		Message:    req.Message,
-	}
-	err = repo.CatMatch.Save(svc.Context, &model)
-	if err != nil {
-		return err
+		// Update cat already match if cat matches successfully created
+		err = repo.CatMatch.UpdateCatAlreadyMatches(
+			svc.Context,
+			[]int{
+				int(req.MatchCatId),
+				int(req.UserCatId),
+			},
+			true,
+			tx,
+		)
+		if err != nil {
+			return err
+		}
+
+		return nil
+	}); err != nil {
+		return fmt.Errorf("Update transaction %w", err)
 	}
 
 	return nil
