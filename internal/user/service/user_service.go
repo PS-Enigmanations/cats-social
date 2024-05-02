@@ -36,56 +36,67 @@ func NewUserService(ctx context.Context, pool *pgxpool.Pool, repo *UserDependenc
 	return &userService{Context: ctx, pool: pool, repo: repo}
 }
 
+func (svc *userService) validate(req *request.UserRegisterRequest) (*user.User, error) {
+	repo := svc.repo
+
+	var payload = &user.User{
+		Name: req.Name,
+	}
+
+	if req.Email != "" {
+		lowerCasedEmail := strings.ToLower(req.Email)
+		payload.Email = lowerCasedEmail
+
+		// Check email format
+		var verifier = emailverifier.NewVerifier()
+		ret, err := verifier.Verify(payload.Email)
+		if err != nil {
+			return nil, errs.UserErrEmailInvalidFormat
+		}
+		if !ret.Syntax.Valid {
+			return nil, errs.UserErrEmailInvalidFormat
+		}
+
+		// Check existing user
+		userFound, _ := repo.User.GetByEmailIfExists(svc.Context, payload.Email)
+		if userFound != nil {
+			return nil, errs.UserErrEmailExist
+		}
+	}
+	if req.Password != "" {
+		hashedPassword, err := bcrypt.HashPassword(req.Password)
+		if err != nil {
+			return nil, err
+		}
+		payload.Password = hashedPassword
+	}
+
+	return payload, nil
+}
+
 func (svc *userService) Create(req *request.UserRegisterRequest) (*response.UserCreateResponse, error) {
 	repo := svc.repo
 
+	// Validate first
+	payload, err := svc.validate(req)
+	if err != nil {
+		return nil, err
+	}
+
 	var result *user.User
-
 	if err := database.BeginTransaction(svc.Context, svc.pool, func(tx pgx.Tx) error {
-		var payload = &user.User{
-			Name: req.Name,
-		}
-
-		if req.Email != "" {
-			lowerCasedEmail := strings.ToLower(req.Email)
-			payload.Email = lowerCasedEmail
-
-			// Check email format
-			var verifier = emailverifier.NewVerifier()
-			ret, err := verifier.Verify(payload.Email)
-			if err != nil {
-				return errs.UserErrEmailInvalidFormat
-			}
-			if !ret.Syntax.Valid {
-				return errs.UserErrEmailInvalidFormat
-			}
-
-			// Check exisiting user
-			userFound, _ := repo.User.GetByEmailIfExists(svc.Context, req.Email)
-			if userFound != nil {
-				return errs.UserErrEmailExist
-			}
-		}
-		if req.Password != "" {
-			hashedPassword, err := bcrypt.HashPassword(req.Password)
-			if err != nil {
-				return err
-			}
-			payload.Password = hashedPassword
-		}
-
 		model := user.User{
 			Email:    payload.Email,
 			Name:     payload.Name,
 			Password: payload.Password,
 		}
 
-		user, err := repo.User.Save(svc.Context, model, tx)
+		userCreated, err := repo.User.Save(svc.Context, model, tx)
 		if err != nil {
 			return err
 		}
 
-		result = user
+		result = userCreated
 		return nil
 	}); err != nil {
 		return nil, fmt.Errorf("transaction %w", err)

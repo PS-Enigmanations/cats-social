@@ -110,7 +110,7 @@ func (db *userRepositoryDB) GetByEmailIfExists(ctx context.Context, email string
 
 	if e.exists {
 		const sql = `
-			SELECT u.id, u.name, u.email FROM users u WHERE u.email = $1 AND deleted_at IS NULL LIMIT 1;
+			SELECT u.id, u.name, u.email, u.password FROM users u WHERE u.email = $1 AND deleted_at IS NULL LIMIT 1;
 		`
 		row := db.pool.QueryRow(ctx, sql, email)
 		u := new(user.User)
