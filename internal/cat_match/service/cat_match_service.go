@@ -19,17 +19,17 @@ type CatMatchService interface {
 	Create(req *request.CatMatchRequest, actorId int64) error
 }
 
-type CatMatchServiceDependency struct {
+type CatMatchDependency struct {
 	CatMatch repository.CatMatchRepository
 	User     userRepository.UserRepository
 }
 type catMatchService struct {
 	pool    *pgxpool.Pool
-	repo    *CatMatchServiceDependency
+	repo    *CatMatchDependency
 	Context context.Context
 }
 
-func NewCatMatchService(ctx context.Context, pool *pgxpool.Pool, repo *CatMatchServiceDependency) CatMatchService {
+func NewCatMatchService(ctx context.Context, pool *pgxpool.Pool, repo *CatMatchDependency) CatMatchService {
 	return &catMatchService{pool: pool, repo: repo, Context: ctx}
 }
 
@@ -122,7 +122,7 @@ func (svc *catMatchService) Create(req *request.CatMatchRequest, actorId int64) 
 
 		return nil
 	}); err != nil {
-		return fmt.Errorf("Update transaction %w", err)
+		return fmt.Errorf("transaction %w", err)
 	}
 
 	return nil

@@ -3,7 +3,6 @@ package repository
 import (
 	"context"
 	"enigmanations/cats-social/internal/user"
-	"enigmanations/cats-social/pkg/database"
 	"fmt"
 	"log"
 
@@ -15,7 +14,7 @@ type UserRepository interface {
 	Get(ctx context.Context, id int) (*user.User, error)
 	GetByEmail(ctx context.Context, email string) (*user.User, error)
 	GetByEmailIfExists(ctx context.Context, email string) (*user.User, error)
-	Save(ctx context.Context, model user.User) (*user.User, error)
+	Save(ctx context.Context, model user.User, tx pgx.Tx) (*user.User, error)
 }
 
 type userRepositoryDB struct {
@@ -26,40 +25,30 @@ func NewUserRepository(pool *pgxpool.Pool) UserRepository {
 	return &userRepositoryDB{pool: pool}
 }
 
-func (db *userRepositoryDB) Save(ctx context.Context, model user.User) (*user.User, error) {
-	var result *user.User
-
-	if err := database.BeginTransaction(ctx, db.pool, func(tx pgx.Tx) error {
-		// Create user
-		const qUser = `
-			INSERT INTO users ("name", email, "password", created_at)
-			VALUES($1, $2, $3, now())
-			RETURNING id, email, name;
-		`
-		userRow := tx.QueryRow(
-			ctx,
-			qUser,
-			model.Name,
-			model.Email,
-			model.Password,
-		)
-		u := new(user.User)
-		uErr := userRow.Scan(
-			&u.Id,
-			&u.Email,
-			&u.Name,
-		)
-		if uErr != nil {
-			return fmt.Errorf("%w", uErr)
-		}
-
-		result = u
-		return nil
-	}); err != nil {
-		return nil, fmt.Errorf("Save transaction %w", err)
+func (db *userRepositoryDB) Save(ctx context.Context, model user.User, tx pgx.Tx) (*user.User, error) {
+	const sql = `
+		INSERT INTO users ("name", email, "password", created_at)
+		VALUES($1, $2, $3, now())
+		RETURNING id, email, name;
+	`
+	userRow := tx.QueryRow(
+		ctx,
+		sql,
+		model.Name,
+		model.Email,
+		model.Password,
+	)
+	v := new(user.User)
+	err := userRow.Scan(
+		&v.Id,
+		&v.Email,
+		&v.Name,
+	)
+	if err != nil {
+		return nil, fmt.Errorf("%w", err)
 	}
 
-	return result, nil
+	return v, nil
 }
 
 func (db *userRepositoryDB) Get(ctx context.Context, id int) (*user.User, error) {

@@ -74,9 +74,22 @@ func main() {
 
 	// Users
 	userRepository := userRepositoryInternal.NewUserRepository(pgPool)
-	userService := userServiceInternal.NewUserService(userRepository, ctx)
+	userService := userServiceInternal.NewUserService(
+		ctx,
+		pgPool,
+		&userServiceInternal.UserDependency{
+			User: userRepository,
+		},
+	)
 	userAuthRepository := userRepositoryInternal.NewUserAuthRepository(pgPool)
-	userAuthService := userServiceInternal.NewUserAuthService(userRepository, userAuthRepository, ctx)
+	userAuthService := userServiceInternal.NewUserAuthService(
+		ctx,
+		pgPool,
+		&userServiceInternal.UserAuthDependency{
+			User:    userRepository,
+			Session: userAuthRepository,
+		},
+	)
 	userController := userControllerInternal.NewUserController(userService, userAuthService)
 
 	// Users api endpoint
@@ -97,7 +110,7 @@ func main() {
 	catMatchService := catMatchServiceInternal.NewCatMatchService(
 		ctx,
 		pgPool,
-		&catMatchServiceInternal.CatMatchServiceDependency{
+		&catMatchServiceInternal.CatMatchDependency{
 			User:     userRepository,
 			CatMatch: catMatchRepository,
 		},

@@ -3,7 +3,6 @@ package repository
 import (
 	"context"
 	"enigmanations/cats-social/internal/user"
-	"enigmanations/cats-social/pkg/database"
 	"enigmanations/cats-social/pkg/jwt"
 	"fmt"
 	"time"
@@ -13,7 +12,7 @@ import (
 )
 
 type UserAuthRepository interface {
-	Save(ctx context.Context, model *user.User) (*user.UserSession, error)
+	Save(ctx context.Context, model *user.User, tx pgx.Tx) (*user.UserSession, error)
 	GetIfExists(ctx context.Context, userId int) (*user.UserSession, error)
 }
 
@@ -26,47 +25,41 @@ func NewUserAuthRepository(pool *pgxpool.Pool) UserAuthRepository {
 }
 
 // Create user session
-func (db *userAuthRepositoryDB) Save(ctx context.Context, model *user.User) (*user.UserSession, error) {
+func (db *userAuthRepositoryDB) Save(ctx context.Context, model *user.User, tx pgx.Tx) (*user.UserSession, error) {
 	const sessionLengthSeconds = 134784000 // 1 year
 
 	var session = &user.UserSession{
 		ExpiresAt: time.Now().Add(time.Duration(sessionLengthSeconds) * time.Second),
 	}
 
-	if err := database.BeginTransaction(ctx, db.pool, func(tx pgx.Tx) error {
-		const sql = `
-			INSERT INTO sessions (token, expires_at, user_id, created_at)
-			VALUES($1, $2, $3, now())
-			RETURNING token, user_id;
-		`
+	const sql = `
+		INSERT INTO sessions (token, expires_at, user_id, created_at)
+		VALUES($1, $2, $3, now())
+		RETURNING token, user_id;
+	`
 
-		// Generate access token
-		token, err := jwt.GenerateAccessToken(uint64(model.Id), model)
-		if err != nil {
-			return fmt.Errorf("%w", err)
-		}
-
-		userSessionRow := tx.QueryRow(
-			ctx,
-			sql,
-			token,
-			session.ExpiresAt,
-			model.Id,
-		)
-		uSession := new(user.UserSession)
-		uSessionErr := userSessionRow.Scan(
-			&uSession.Token,
-			&uSession.UserId,
-		)
-		if uSessionErr != nil {
-			return fmt.Errorf("%w", uSessionErr)
-		}
-
-		session = uSession
-		return nil
-	}); err != nil {
-		return nil, fmt.Errorf("Save transaction %w", err)
+	// Generate access token
+	token, err := jwt.GenerateAccessToken(uint64(model.Id), model)
+	if err != nil {
+		return nil, fmt.Errorf("%w", err)
 	}
+
+	userSessionRow := tx.QueryRow(
+		ctx,
+		sql,
+		token,
+		session.ExpiresAt,
+		model.Id,
+	)
+	v := new(user.UserSession)
+	uSessionErr := userSessionRow.Scan(
+		&v.Token,
+		&v.UserId,
+	)
+	if uSessionErr != nil {
+		return nil, fmt.Errorf("%w", uSessionErr)
+	}
+	session = v
 
 	return session, nil
 }

@@ -8,67 +8,88 @@ import (
 	"enigmanations/cats-social/internal/user/request"
 	"enigmanations/cats-social/internal/user/response"
 	"enigmanations/cats-social/pkg/bcrypt"
+	"fmt"
 	"strings"
 
+	"enigmanations/cats-social/pkg/database"
+
 	emailverifier "github.com/AfterShip/email-verifier"
+	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgxpool"
 )
 
 type UserService interface {
 	Create(req *request.UserRegisterRequest) (*response.UserCreateResponse, error)
 }
 
+type UserDependency struct {
+	User repository.UserRepository
+}
+
 type userService struct {
-	db      repository.UserRepository
+	pool    *pgxpool.Pool
+	repo    *UserDependency
 	Context context.Context
 }
 
-func NewUserService(db repository.UserRepository, ctx context.Context) UserService {
-	return &userService{db: db, Context: ctx}
+func NewUserService(ctx context.Context, pool *pgxpool.Pool, repo *UserDependency) UserService {
+	return &userService{Context: ctx, pool: pool, repo: repo}
 }
 
-func (service *userService) Create(req *request.UserRegisterRequest) (*response.UserCreateResponse, error) {
-	var payload = &user.User{
-		Name: req.Name,
-	}
+func (svc *userService) Create(req *request.UserRegisterRequest) (*response.UserCreateResponse, error) {
+	repo := svc.repo
 
-	if req.Email != "" {
-		lowerCasedEmail := strings.ToLower(req.Email)
-		payload.Email = lowerCasedEmail
+	var result *user.User
 
-		// Check email format
-		var verifier = emailverifier.NewVerifier()
-		ret, err := verifier.Verify(payload.Email)
+	if err := database.BeginTransaction(svc.Context, svc.pool, func(tx pgx.Tx) error {
+		var payload = &user.User{
+			Name: req.Name,
+		}
+
+		if req.Email != "" {
+			lowerCasedEmail := strings.ToLower(req.Email)
+			payload.Email = lowerCasedEmail
+
+			// Check email format
+			var verifier = emailverifier.NewVerifier()
+			ret, err := verifier.Verify(payload.Email)
+			if err != nil {
+				return errs.UserErrEmailInvalidFormat
+			}
+			if !ret.Syntax.Valid {
+				return errs.UserErrEmailInvalidFormat
+			}
+
+			// Check exisiting user
+			userFound, _ := repo.User.GetByEmailIfExists(svc.Context, req.Email)
+			if userFound != nil {
+				return errs.UserErrEmailExist
+			}
+		}
+		if req.Password != "" {
+			hashedPassword, err := bcrypt.HashPassword(req.Password)
+			if err != nil {
+				return err
+			}
+			payload.Password = hashedPassword
+		}
+
+		model := user.User{
+			Email:    payload.Email,
+			Name:     payload.Name,
+			Password: payload.Password,
+		}
+
+		user, err := repo.User.Save(svc.Context, model, tx)
 		if err != nil {
-			return nil, errs.UserErrEmailInvalidFormat
-		}
-		if !ret.Syntax.Valid {
-			return nil, errs.UserErrEmailInvalidFormat
+			return err
 		}
 
-		// Check exisiting user
-		userFound, _ := service.db.GetByEmailIfExists(service.Context, req.Email)
-		if userFound != nil {
-			return nil, errs.UserErrEmailExist
-		}
-	}
-	if req.Password != "" {
-		hashedPassword, err := bcrypt.HashPassword(req.Password)
-		if err != nil {
-			return nil, err
-		}
-		payload.Password = hashedPassword
+		result = user
+		return nil
+	}); err != nil {
+		return nil, fmt.Errorf("transaction %w", err)
 	}
 
-	model := user.User{
-		Email:    payload.Email,
-		Name:     payload.Name,
-		Password: payload.Password,
-	}
-
-	user, err := service.db.Save(service.Context, model)
-	if err != nil {
-		return nil, err
-	}
-
-	return response.UserToUserCreateResponse(*user), nil
+	return response.UserToUserCreateResponse(*result), nil
 }

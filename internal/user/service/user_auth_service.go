@@ -11,25 +11,40 @@ import (
 	"enigmanations/cats-social/pkg/jwt"
 	"fmt"
 
+	"enigmanations/cats-social/pkg/database"
+
 	emailverifier "github.com/AfterShip/email-verifier"
+	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgxpool"
 )
 
 type UserAuthService interface {
 	Login(req *request.UserLoginRequest) (*response.UserLoginResponse, error)
 }
 
+type UserAuthDependency struct {
+	User    repository.UserRepository
+	Session repository.UserAuthRepository
+}
+
 type userAuthService struct {
-	userDB  repository.UserRepository
-	authDB  repository.UserAuthRepository
+	pool    *pgxpool.Pool
+	repo    *UserAuthDependency
 	Context context.Context
 }
 
-func NewUserAuthService(userDB repository.UserRepository, authDB repository.UserAuthRepository, ctx context.Context) UserAuthService {
-	return &userAuthService{userDB: userDB, authDB: authDB, Context: ctx}
+func NewUserAuthService(ctx context.Context, pool *pgxpool.Pool, repo *UserAuthDependency) UserAuthService {
+	return &userAuthService{Context: ctx, pool: pool, repo: repo}
 }
 
-func (service *userAuthService) Login(req *request.UserLoginRequest) (*response.UserLoginResponse, error) {
-	var userCredential *user.User
+func (svc *userAuthService) Login(req *request.UserLoginRequest) (*response.UserLoginResponse, error) {
+	repo := svc.repo
+
+	var (
+		userCredential *user.User
+		userSession    *user.UserSession
+		accessToken    string
+	)
 
 	// Check email
 	if req.Email != "" {
@@ -43,7 +58,7 @@ func (service *userAuthService) Login(req *request.UserLoginRequest) (*response.
 		}
 
 		// Get user
-		userCredentialFound, err := service.userDB.GetByEmail(service.Context, req.Email)
+		userCredentialFound, err := repo.User.GetByEmail(svc.Context, req.Email)
 		if err != nil {
 			return nil, errs.UserErrNotFound
 		}
@@ -59,21 +74,27 @@ func (service *userAuthService) Login(req *request.UserLoginRequest) (*response.
 	}
 
 	// Create or get session
-	var userSession *user.UserSession
-	userSessionFound, _ := service.authDB.GetIfExists(service.Context, userCredential.Id)
-	if userSessionFound != nil {
-		userSession = userSessionFound
-	} else {
-		userSessionCreated, err := service.authDB.Save(service.Context, userCredential)
-		if err != nil {
-			return nil, err
+	if err := database.BeginTransaction(svc.Context, svc.pool, func(tx pgx.Tx) error {
+		userSessionFound, _ := repo.Session.GetIfExists(svc.Context, userCredential.Id)
+		if userSessionFound != nil {
+			userSession = userSessionFound
+		} else {
+			userSessionCreated, err := repo.Session.Save(svc.Context, userCredential, tx)
+			if err != nil {
+				return err
+			}
+			userSession = userSessionCreated
 		}
-		userSession = userSessionCreated
-	}
 
-	// Generate access token
-	accessToken, err := jwt.GenerateAccessToken(uint64(userSession.UserId), userCredential)
-	if err != nil {
+		// Generate access token
+		token, err := jwt.GenerateAccessToken(uint64(userSession.UserId), userCredential)
+		if err != nil {
+			return fmt.Errorf("%w", err)
+		}
+
+		accessToken = token
+		return nil
+	}); err != nil {
 		return nil, fmt.Errorf("%w", err)
 	}
 
