@@ -1,4 +1,4 @@
-INSERT INTO "public"."cats" ("user_id", "name", "race", "sex", "age_in_month", "description", "is_already_matched", "created_at", "updated_at", "deleted_at")
+INSERT INTO "public"."cats" ("user_id", "name", "race", "sex", "age_in_month", "description", "has_matched", "created_at", "updated_at", "deleted_at")
 VALUES
     (1, 'Fluffy', 'Persian', 'male', 24, 'Fluffy is a friendly and playful cat.', FALSE, NOW(), NOW(), NULL),
     (1, 'Whiskers', 'Maine Coon', 'female', 18, 'Whiskers loves to cuddle and enjoys exploring outdoors.', TRUE, NOW(), NOW(), NULL),

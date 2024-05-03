@@ -100,14 +100,14 @@ func main() {
 
 	// Cats
 	catRepository := catRepositoryInternal.NewCatRepository(pgPool)
-	catService := catServiceInternal.NewCatService(catRepository, ctx)
+	catService := catServiceInternal.NewCatService(ctx, pgPool, catRepository)
 	catController := catControllerInternal.NewCatController(catService)
 
 	// Cats api endpoint
-	router.Get("/v1/cat", auth.ProtectedHandler(http.HandlerFunc(catController.CatGetController)))
-	router.Put("/v1/cat/:id", auth.ProtectedHandler(http.HandlerFunc(catController.CatUpdateController)))
+	router.Get("/v1/cat", auth.ProtectedHandler(http.HandlerFunc(catController.CatGetAllController)))
 	router.Post("/v1/cat", auth.ProtectedHandler(http.HandlerFunc(catController.CatCreateController)))
-	router.Del("/v1/cat/:id", auth.ProtectedHandler(http.HandlerFunc(catController.CatDeleteController)))
+	// router.Put("/v1/cat/:id", auth.ProtectedHandler(http.HandlerFunc(catController.CatUpdateController)))
+	// router.Del("/v1/cat/:id", auth.ProtectedHandler(http.HandlerFunc(catController.CatDeleteController)))
 
 	// Cat Match
 	catMatchRepository := catMatchRepositoryInternal.NewCatMatchRepository(pgPool)

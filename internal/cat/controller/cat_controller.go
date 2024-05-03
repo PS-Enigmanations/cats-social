@@ -2,29 +2,41 @@ package controller
 
 import (
 	"encoding/json"
+	"enigmanations/cats-social/internal/cat/request"
 	"enigmanations/cats-social/internal/cat/service"
+	"enigmanations/cats-social/internal/user"
+	"enigmanations/cats-social/util"
 	"log"
 	"net/http"
-	"strconv"
-
-	"enigmanations/cats-social/internal/cat"
 
 	"github.com/go-playground/validator"
 )
+
+type CatMatchController interface {
+	CatGetAllController(w http.ResponseWriter, r *http.Request)
+	CatCreateController(w http.ResponseWriter, r *http.Request)
+	//CatUpdateController(w http.ResponseWriter, r *http.Request)
+	//CatDeleteController(w http.ResponseWriter, r *http.Request)
+}
 
 type catController struct {
 	Service service.CatService
 }
 
-func NewCatController(svc service.CatService) catController {
-	return catController{Service: svc}
+func NewCatController(svc service.CatService) CatMatchController {
+	return &catController{Service: svc}
 }
 
-func (c *catController) CatGetController(w http.ResponseWriter, r *http.Request) {
+func (c *catController) CatGetAllController(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusOK)
 	w.Header().Add("Content-Type", "application/json")
 
-	cats, err := c.Service.GetAll()
+	queryParams, err := util.ParseQuery[request.CatGetAllQueryParams](r)
+	if err != nil {
+		log.Fatalf("Error happened in parse query. Err: %s", err)
+	}
+
+	cats, err := c.Service.GetAllByParams(queryParams)
 	jsonResp, err := json.Marshal(cats)
 	if err != nil {
 		log.Fatalf("Error happened in JSON marshal. Err: %s", err)
@@ -34,7 +46,8 @@ func (c *catController) CatGetController(w http.ResponseWriter, r *http.Request)
 }
 
 func (c *catController) CatCreateController(w http.ResponseWriter, r *http.Request) {
-	var reqBody cat.CatCreateRequest
+	var reqBody request.CatCreateRequest
+
 	if err := json.NewDecoder(r.Body).Decode(&reqBody); err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
@@ -46,8 +59,11 @@ func (c *catController) CatCreateController(w http.ResponseWriter, r *http.Reque
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
+
+	currUser := user.GetCurrentUser(r.Context())
+
 	// send data to service layer to further process (create record)
-	cat, err := c.Service.Create(&reqBody)
+	cat, err := c.Service.Create(&reqBody, currUser.Uid)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
@@ -64,6 +80,7 @@ func (c *catController) CatCreateController(w http.ResponseWriter, r *http.Reque
 	return
 }
 
+/**
 func (c *catController) CatUpdateController(w http.ResponseWriter, r *http.Request) {
 	var reqBody cat.CatUpdateRequest
 	if err := json.NewDecoder(r.Body).Decode(&reqBody); err != nil {
@@ -126,3 +143,4 @@ func (c *catController) CatDeleteController(w http.ResponseWriter, r *http.Reque
 	w.WriteHeader(http.StatusOK)
 	return
 }
+*/

@@ -48,6 +48,12 @@ make dev
 make k6
 ```
 
+3. Or Run load test:
+
+```sh
+make k6-loadtest
+```
+
 **Docs**
 
 1. Please install plugin `REST Client` at vscode
@@ -55,9 +61,9 @@ make k6
 
 **API**:
 
-- http://localhost:8080/v1/register
-- http://localhost:8080/v1/login
-- http://localhost:8080/v1/cat
-- http://localhost:8080/v1/cat/match
+- http://localhost:8080/v1/user/register (`POST`)
+- http://localhost:8080/v1/user/login (`POST`)
+- http://localhost:8080/v1/cat (`GET`, `POST`)
+- http://localhost:8080/v1/cat/match (`POST`)
 - http://localhost:8080/v1/cat/match/approve
 - http://localhost:8080/v1/cat/match/reject
