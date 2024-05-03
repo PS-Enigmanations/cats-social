@@ -11,14 +11,13 @@ import (
 	"strconv"
 
 	"github.com/go-playground/validator"
-	"github.com/julienschmidt/httprouter"
 )
 
 type CatMatchController interface {
-	CatMatchCreate(w http.ResponseWriter, r *http.Request, _ httprouter.Params)
-	CatMatchDestroy(w http.ResponseWriter, r *http.Request, p httprouter.Params)
-	CatMatchApprove(w http.ResponseWriter, r *http.Request, p httprouter.Params)
-	CatMatchReject(w http.ResponseWriter, r *http.Request, p httprouter.Params)
+	CatMatchCreate(w http.ResponseWriter, r *http.Request)
+	CatMatchDestroy(w http.ResponseWriter, r *http.Request)
+	CatMatchApprove(w http.ResponseWriter, r *http.Request)
+	CatMatchReject(w http.ResponseWriter, r *http.Request)
 }
 
 type catMatchController struct {
@@ -29,7 +28,7 @@ func NewCatMatchController(svc service.CatMatchService) CatMatchController {
 	return &catMatchController{Service: svc}
 }
 
-func (c *catMatchController) CatMatchCreate(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
+func (c *catMatchController) CatMatchCreate(w http.ResponseWriter, r *http.Request) {
 	var reqBody request.CatMatchRequest
 
 	if err := json.NewDecoder(r.Body).Decode(&reqBody); err != nil {
@@ -70,8 +69,8 @@ func (c *catMatchController) CatMatchCreate(w http.ResponseWriter, r *http.Reque
 	return
 }
 
-func (c *catMatchController) CatMatchDestroy(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
-	id := p.ByName("id")
+func (c *catMatchController) CatMatchDestroy(w http.ResponseWriter, r *http.Request) {
+	id := r.URL.Query().Get("id")
 	catId, err := strconv.Atoi(id)
 
 	if err = c.Service.Destroy(int64(catId)); err != nil {
@@ -84,8 +83,7 @@ func (c *catMatchController) CatMatchDestroy(w http.ResponseWriter, r *http.Requ
 	return
 }
 
-
-func (c *catMatchController) CatMatchApprove(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
+func (c *catMatchController) CatMatchApprove(w http.ResponseWriter, r *http.Request) {
 	var reqBody request.CatMatchApproveRejectRequest
 
 	if err := json.NewDecoder(r.Body).Decode(&reqBody); err != nil {
@@ -110,7 +108,7 @@ func (c *catMatchController) CatMatchApprove(w http.ResponseWriter, r *http.Requ
 	return
 }
 
-func (c *catMatchController) CatMatchReject(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
+func (c *catMatchController) CatMatchReject(w http.ResponseWriter, r *http.Request) {
 	var reqBody request.CatMatchApproveRejectRequest
 
 	if err := json.NewDecoder(r.Body).Decode(&reqBody); err != nil {

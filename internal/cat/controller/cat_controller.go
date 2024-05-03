@@ -10,7 +10,6 @@ import (
 	"enigmanations/cats-social/internal/cat"
 
 	"github.com/go-playground/validator"
-	"github.com/julienschmidt/httprouter"
 )
 
 type catController struct {
@@ -21,7 +20,7 @@ func NewCatController(svc service.CatService) catController {
 	return catController{Service: svc}
 }
 
-func (c *catController) CatGetController(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
+func (c *catController) CatGetController(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusOK)
 	w.Header().Add("Content-Type", "application/json")
 
@@ -34,7 +33,7 @@ func (c *catController) CatGetController(w http.ResponseWriter, r *http.Request,
 	return
 }
 
-func (c *catController) CatCreateController(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
+func (c *catController) CatCreateController(w http.ResponseWriter, r *http.Request) {
 	var reqBody cat.CatCreateRequest
 	if err := json.NewDecoder(r.Body).Decode(&reqBody); err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
@@ -65,7 +64,7 @@ func (c *catController) CatCreateController(w http.ResponseWriter, r *http.Reque
 	return
 }
 
-func (c *catController) CatUpdateController(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
+func (c *catController) CatUpdateController(w http.ResponseWriter, r *http.Request) {
 	var reqBody cat.CatUpdateRequest
 	if err := json.NewDecoder(r.Body).Decode(&reqBody); err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
@@ -102,9 +101,9 @@ func (c *catController) CatUpdateController(w http.ResponseWriter, r *http.Reque
 	return
 }
 
-func (c *catController) CatDeleteController(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
+func (c *catController) CatDeleteController(w http.ResponseWriter, r *http.Request) {
 	// get cat id from request params
-	catId := p.ByName("id")
+	catId := r.URL.Query().Get("id")
 	id, err := strconv.Atoi(catId)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
