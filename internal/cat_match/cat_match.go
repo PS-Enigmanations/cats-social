@@ -37,7 +37,7 @@ type CatMatchValue struct {
     UserCatSex               string   `json:"user_cat_sex"`
     UserCatAgeInMonth        int      `json:"user_cat_age_in_month"`
     UserCatDescription       string   `json:"user_cat_description"`
-    UserCatIsAlreadyMatched  bool     `json:"user_cat_is_already_matched"`
+    UserCatIsAlreadyMatched  bool     `json:"user_cat_has_matched"`
     UserCatCreatedAt         time.Time `json:"user_cat_created_at"`
     UserCatUpdatedAt         time.Time `json:"user_cat_updated_at"`
     MatchCatId               int      `json:"match_cat_id"`
@@ -47,7 +47,7 @@ type CatMatchValue struct {
     MatchCatSex              string   `json:"match_cat_sex"`
     MatchCatAgeInMonth       int      `json:"match_cat_age_in_month"`
     MatchCatDescription      string   `json:"match_cat_description"`
-    MatchCatIsAlreadyMatched bool     `json:"match_cat_is_already_matched"`
+    MatchCatIsAlreadyMatched bool     `json:"match_cat_has_matched"`
     MatchCatCreatedAt        time.Time `json:"match_cat_created_at"`
     MatchCatUpdatedAt        time.Time `json:"match_cat_updated_at"`
     UserCatImageUrls         []string `json:"user_cat_image_urls"`
