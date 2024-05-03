@@ -2,13 +2,14 @@ package main
 
 import (
 	"context"
-	"enigmanations/cats-social/middleware"
 	"enigmanations/cats-social/pkg/database"
 	"fmt"
 	"log"
 	"log/slog"
 	"net/http"
 	"os"
+
+	"enigmanations/cats-social/middleware"
 
 	// Cat
 	catControllerInternal "enigmanations/cats-social/internal/cat/controller"
@@ -25,8 +26,8 @@ import (
 	userRepositoryInternal "enigmanations/cats-social/internal/user/repository"
 	userServiceInternal "enigmanations/cats-social/internal/user/service"
 
+	"github.com/bmizerany/pat"
 	"github.com/joho/godotenv"
-	"github.com/julienschmidt/httprouter"
 )
 
 func main() {
@@ -67,7 +68,7 @@ func main() {
 	ctx := context.Background()
 
 	// Prepare router
-	router := httprouter.New()
+	router := pat.New()
 
 	// Prepare middleware
 	auth := middleware.NewAuthMiddleware(pgPool, ctx)
@@ -94,8 +95,8 @@ func main() {
 	userController := userControllerInternal.NewUserController(userService, userAuthService)
 
 	// Users api endpoint
-	router.POST("/v1/user/register", userController.UserRegister)
-	router.POST("/v1/user/login", userController.UserLogin)
+	router.Post("/v1/user/register", http.HandlerFunc(userController.UserRegister))
+	router.Post("/v1/user/login", http.HandlerFunc(userController.UserLogin))
 
 	// Cats
 	catRepository := catRepositoryInternal.NewCatRepository(pgPool)
@@ -103,10 +104,10 @@ func main() {
 	catController := catControllerInternal.NewCatController(catService)
 
 	// Cats api endpoint
-	router.GET("/v1/cat", auth.ProtectedHandler(catController.CatGetController))
-	router.PUT("/v1/cat/:id", auth.ProtectedHandler(catController.CatUpdateController))
-	router.POST("/v1/cat", auth.ProtectedHandler(catController.CatCreateController))
-	router.DELETE("/v1/cat/:id", auth.ProtectedHandler(catController.CatDeleteController))
+	router.Get("/v1/cat", auth.ProtectedHandler(http.HandlerFunc(catController.CatGetController)))
+	router.Put("/v1/cat/:id", auth.ProtectedHandler(http.HandlerFunc(catController.CatUpdateController)))
+	router.Post("/v1/cat", auth.ProtectedHandler(http.HandlerFunc(catController.CatCreateController)))
+	router.Del("/v1/cat/:id", auth.ProtectedHandler(http.HandlerFunc(catController.CatDeleteController)))
 
 	// Cat Match
 	catMatchRepository := catMatchRepositoryInternal.NewCatMatchRepository(pgPool)
@@ -121,10 +122,10 @@ func main() {
 	catMatchController := catMatchControllerInternal.NewCatMatchController(catMatchService)
 
 	// Cat Match api endpoint
-	router.POST("/v1/cat/match", auth.ProtectedHandler(catMatchController.CatMatchCreate))
-	router.POST("/v1/cat/match/approve", auth.ProtectedHandler(catMatchController.CatMatchApprove))
-	router.POST("/v1/cat/match/reject", auth.ProtectedHandler(catMatchController.CatMatchReject))
-	router.DELETE("/v1/cat/match/:id", auth.ProtectedHandler(catMatchController.CatMatchDestroy))
+	router.Post("/v1/cat/match/*", auth.ProtectedHandler(http.HandlerFunc(catMatchController.CatMatchCreate)))
+	router.Post("/v1/cat/match/approve", auth.ProtectedHandler(http.HandlerFunc(catMatchController.CatMatchApprove)))
+	router.Post("/v1/cat/match/reject", auth.ProtectedHandler(http.HandlerFunc(catMatchController.CatMatchReject)))
+	router.Del("/v1/cat/match/:id", auth.ProtectedHandler(http.HandlerFunc(catMatchController.CatMatchDestroy)))
 
 	// Run the server
 	appServeAddr := ":" + os.Getenv("APP_PORT")

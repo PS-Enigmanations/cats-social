@@ -11,7 +11,6 @@ import (
 	"enigmanations/cats-social/pkg/jwt"
 
 	"github.com/jackc/pgx/v5/pgxpool"
-	"github.com/julienschmidt/httprouter"
 )
 
 type AuthMiddleware struct {
@@ -26,8 +25,8 @@ func NewAuthMiddleware(pool *pgxpool.Pool, ctx context.Context) AuthMiddleware {
 	}
 }
 
-func (m *AuthMiddleware) ProtectedHandler(h httprouter.Handle) httprouter.Handle {
-	return func(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
+func (m *AuthMiddleware) ProtectedHandler(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		// Get access token from header
 		encodedToken, err := jwt.GetTokenFromAuthHeader(r)
 		if err != nil { // error getting Token from auth header
@@ -59,7 +58,6 @@ func (m *AuthMiddleware) ProtectedHandler(h httprouter.Handle) httprouter.Handle
 		ctx := user.NewAuthenticationContext(r.Context(), tokenData.Uid)
 
 		// Delegate request to the given handle
-		next := h
-		next(w, r.WithContext(ctx), ps)
-	}
+		next.ServeHTTP(w, r.WithContext(ctx))
+	})
 }

@@ -10,12 +10,11 @@ import (
 	"net/http"
 
 	"github.com/go-playground/validator"
-	"github.com/julienschmidt/httprouter"
 )
 
 type UserController interface {
-	UserRegister(w http.ResponseWriter, r *http.Request, _ httprouter.Params)
-	UserLogin(w http.ResponseWriter, r *http.Request, _ httprouter.Params)
+	UserRegister(w http.ResponseWriter, r *http.Request)
+	UserLogin(w http.ResponseWriter, r *http.Request)
 }
 
 type userController struct {
@@ -27,7 +26,7 @@ func NewUserController(svc service.UserService, authSvc service.UserAuthService)
 	return &userController{Service: svc, AuthService: authSvc}
 }
 
-func (c *userController) UserRegister(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
+func (c *userController) UserRegister(w http.ResponseWriter, r *http.Request) {
 	var reqBody request.UserRegisterRequest
 
 	if err := json.NewDecoder(r.Body).Decode(&reqBody); err != nil {
@@ -69,7 +68,7 @@ func (c *userController) UserRegister(w http.ResponseWriter, r *http.Request, _ 
 	return
 }
 
-func (c *userController) UserLogin(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
+func (c *userController) UserLogin(w http.ResponseWriter, r *http.Request) {
 	var reqBody request.UserLoginRequest
 
 	if err := json.NewDecoder(r.Body).Decode(&reqBody); err != nil {
