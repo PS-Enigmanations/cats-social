@@ -8,6 +8,7 @@ import (
 	"enigmanations/cats-social/internal/user"
 	"errors"
 	"net/http"
+	"strconv"
 
 	"github.com/go-playground/validator"
 	"github.com/julienschmidt/httprouter"
@@ -15,6 +16,7 @@ import (
 
 type CatMatchController interface {
 	CatMatchCreate(w http.ResponseWriter, r *http.Request, _ httprouter.Params)
+	CatMatchDestroy(w http.ResponseWriter, r *http.Request, p httprouter.Params)
 }
 
 type catMatchController struct {
@@ -61,6 +63,20 @@ func (c *catMatchController) CatMatchCreate(w http.ResponseWriter, r *http.Reque
 	}
 
 	w.WriteHeader(http.StatusCreated)
+	w.Header().Add("Content-Type", "application/json")
+
+	return
+}
+
+func (c *catMatchController) CatMatchDestroy(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
+	id := p.ByName("id")
+	catId, err := strconv.Atoi(id)
+
+	if err = c.Service.Destroy(int64(catId)); err != nil {
+		return
+	}
+
+	w.WriteHeader(http.StatusOK)
 	w.Header().Add("Content-Type", "application/json")
 
 	return

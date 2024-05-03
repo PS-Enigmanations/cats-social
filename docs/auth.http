@@ -21,6 +21,6 @@ Origin: {{origin}}
 # Authorization: Bearer {{accessToken}}
 
 {
-    "email": "ryan1@mail.com",
+    "email": "ryan@mail.com",
     "password": "12345678"
 }
