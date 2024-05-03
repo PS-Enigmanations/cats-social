@@ -5,18 +5,13 @@ import (
 	"enigmanations/cats-social/internal/cat/service"
 	"log"
 	"net/http"
-	"strconv"
-
-	"enigmanations/cats-social/internal/cat"
-
-	"github.com/go-playground/validator"
 )
 
 type CatMatchController interface {
 	CatGetAllController(w http.ResponseWriter, r *http.Request)
-	CatCreateController(w http.ResponseWriter, r *http.Request)
-	CatUpdateController(w http.ResponseWriter, r *http.Request)
-	CatDeleteController(w http.ResponseWriter, r *http.Request)
+	//CatCreateController(w http.ResponseWriter, r *http.Request)
+	//CatUpdateController(w http.ResponseWriter, r *http.Request)
+	//CatDeleteController(w http.ResponseWriter, r *http.Request)
 }
 
 type catController struct {
@@ -31,7 +26,7 @@ func (c *catController) CatGetAllController(w http.ResponseWriter, r *http.Reque
 	w.WriteHeader(http.StatusOK)
 	w.Header().Add("Content-Type", "application/json")
 
-	cats, err := c.Service.GetAll()
+	cats, err := c.Service.GetAllByParams()
 	jsonResp, err := json.Marshal(cats)
 	if err != nil {
 		log.Fatalf("Error happened in JSON marshal. Err: %s", err)
@@ -40,6 +35,7 @@ func (c *catController) CatGetAllController(w http.ResponseWriter, r *http.Reque
 	return
 }
 
+/**
 func (c *catController) CatCreateController(w http.ResponseWriter, r *http.Request) {
 	var reqBody cat.CatCreateRequest
 	if err := json.NewDecoder(r.Body).Decode(&reqBody); err != nil {
@@ -133,3 +129,4 @@ func (c *catController) CatDeleteController(w http.ResponseWriter, r *http.Reque
 	w.WriteHeader(http.StatusOK)
 	return
 }
+*/

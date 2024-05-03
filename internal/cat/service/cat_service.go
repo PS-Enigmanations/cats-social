@@ -3,17 +3,16 @@ package service
 import (
 	"context"
 
-	"enigmanations/cats-social/internal/cat"
 	"enigmanations/cats-social/internal/cat/repository"
+	"enigmanations/cats-social/internal/cat/response"
 )
 
 type CatService interface {
-	GetAll() ([]*CatResponse, error)
-	FindById(catId int) (*CatResponse, error)
-	Create(payload *cat.CatCreateRequest) (*CatResponse, error)
-	Update(payload *cat.CatUpdateRequest, catId int) (*CatResponse, error)
-	Delete(catId int) error
-	DeleteImageUrls(catId int) error
+	// p *request.CatGetAllRequestParams
+	GetAllByParams() (*response.CatGetAllResponse, error)
+	// Create(payload *request.CatCreateRequest) (*response.CatCreateResponse, error)
+	//Update(payload *request.CatUpdateRequest, catId int) error
+	// Delete(catId int) error
 }
 
 type catService struct {
@@ -26,23 +25,19 @@ func NewCatService(db repository.CatRepository, ctx context.Context) CatService 
 	return &catService{db: db, Context: ctx}
 }
 
-func (service *catService) GetAll() ([]*CatResponse, error) {
-	// call GetAll from repository/ datastore to retrieve all Cat record
+func (service *catService) GetAllByParams() (*response.CatGetAllResponse, error) {
 	cats, err := service.db.GetAll(service.Context)
 
 	if err != nil {
 		return nil, err
 	}
 
-	var catRes []*CatResponse
-	for _, cat := range cats {
-		catRes = append(catRes, CatToCatResponse(*cat))
-	}
-
-	return catRes, nil
+	catShows := response.ToCatShows(cats)
+	return response.CatToCatGetAllResponse(catShows), nil
 }
 
-func (service *catService) Create(payload *cat.CatCreateRequest) (*CatResponse, error) {
+/**
+func (service *catService) Create(payload *request.CatCreateRequest) (*response.CatCreateResponse, error) {
 	const USER_ID = 2
 
 	model := cat.Cat{
@@ -72,7 +67,8 @@ func (service *catService) Create(payload *cat.CatCreateRequest) (*CatResponse, 
 	return CatToCatResponse(*cat), nil
 }
 
-func (service *catService) Update(payload *cat.CatUpdateRequest, catId int) (*CatResponse, error) {
+
+func (service *catService) Update(payload *request.CatUpdateRequest, catId int) error {
 	const USER_ID = 2
 
 	model := cat.Cat{
@@ -106,15 +102,6 @@ func (service *catService) Update(payload *cat.CatUpdateRequest, catId int) (*Ca
 	return CatToCatResponse(*cat), nil
 }
 
-func (service *catService) FindById(catId int) (*CatResponse, error) {
-	cat, err := service.db.FindById(service.Context, catId)
-	if err != nil {
-		return nil, err
-	}
-
-	return CatToCatResponse(*cat), nil
-}
-
 func (service *catService) Delete(catId int) error {
 	_, err := service.db.FindById(service.Context, catId)
 	if err != nil {
@@ -127,30 +114,4 @@ func (service *catService) Delete(catId int) error {
 	}
 	return nil
 }
-
-func (service *catService) DeleteImageUrls(catId int) error {
-	return service.db.DeleteImageUrls(service.Context, catId)
-}
-
-type CatResponse struct {
-	Id          int
-	Name        string
-	Race        string
-	Sex         string
-	AgeInMonth  int
-	Description string
-	ImageUrls   []string
-}
-
-// convert 'Cat' model to 'CatResponse' DTO
-func CatToCatResponse(c cat.Cat) *CatResponse {
-	return &CatResponse{
-		Id:          c.Id,
-		Name:        c.Name,
-		Race:        string(c.Race),
-		Sex:         string(c.Sex),
-		AgeInMonth:  c.AgeInMonth,
-		Description: c.Description,
-		ImageUrls:   c.ImageUrls,
-	}
-}
+*/
