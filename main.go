@@ -74,14 +74,15 @@ func main() {
 
 	// Users
 	userRepository := userRepositoryInternal.NewUserRepository(pgPool)
+	userAuthRepository := userRepositoryInternal.NewUserAuthRepository(pgPool)
 	userService := userServiceInternal.NewUserService(
 		ctx,
 		pgPool,
 		&userServiceInternal.UserDependency{
-			User: userRepository,
+			User:    userRepository,
+			Session: userAuthRepository,
 		},
 	)
-	userAuthRepository := userRepositoryInternal.NewUserAuthRepository(pgPool)
 	userAuthService := userServiceInternal.NewUserAuthService(
 		ctx,
 		pgPool,

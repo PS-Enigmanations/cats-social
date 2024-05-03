@@ -3,8 +3,9 @@ package response
 import "enigmanations/cats-social/internal/user"
 
 type UserShow struct {
-	Email string `json:"email"`
-	Name  string `json:"name"`
+	Email       string `json:"email"`
+	Name        string `json:"name"`
+	AccessToken string `json:"accessToken"`
 }
 
 type UserCreateResponse struct {
@@ -14,12 +15,13 @@ type UserCreateResponse struct {
 
 const UserCreateSuccMessage = "User registered successfully"
 
-func UserToUserCreateResponse(u user.User) *UserCreateResponse {
+func UserToUserCreateResponse(u user.User, token string) *UserCreateResponse {
 	return &UserCreateResponse{
 		Message: UserCreateSuccMessage,
 		Data: UserShow{
-			Email: u.Email,
-			Name:  u.Name,
+			Email:       u.Email,
+			Name:        u.Name,
+			AccessToken: token,
 		},
 	}
 }

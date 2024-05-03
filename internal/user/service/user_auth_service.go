@@ -18,6 +18,9 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
+type CreateOrGetSessionValue struct {
+}
+
 type UserAuthService interface {
 	Login(req *request.UserLoginRequest) (*response.UserLoginResponse, error)
 }
@@ -75,16 +78,11 @@ func (svc *userAuthService) Login(req *request.UserLoginRequest) (*response.User
 
 	// Create or get session
 	if err := database.BeginTransaction(svc.Context, svc.pool, func(tx pgx.Tx) error {
-		userSessionFound, _ := repo.Session.GetIfExists(svc.Context, userCredential.Id)
-		if userSessionFound != nil {
-			userSession = userSessionFound
-		} else {
-			userSessionCreated, err := repo.Session.Save(svc.Context, userCredential, tx)
-			if err != nil {
-				return err
-			}
-			userSession = userSessionCreated
+		session, err := repo.Session.SaveOrGet(svc.Context, userCredential, tx)
+		if err != nil {
+			return err
 		}
+		userSession = session
 
 		// Generate access token
 		token, err := jwt.GenerateAccessToken(uint64(userSession.UserId), userCredential)

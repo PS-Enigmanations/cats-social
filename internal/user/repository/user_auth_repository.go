@@ -12,8 +12,9 @@ import (
 )
 
 type UserAuthRepository interface {
-	Save(ctx context.Context, model *user.User, tx pgx.Tx) (*user.UserSession, error)
 	GetIfExists(ctx context.Context, userId int) (*user.UserSession, error)
+	Save(ctx context.Context, model *user.User, tx pgx.Tx) (*user.UserSession, error)
+	SaveOrGet(ctx context.Context, model *user.User, tx pgx.Tx) (*user.UserSession, error)
 }
 
 type userAuthRepositoryDB struct {
@@ -97,4 +98,21 @@ func (db *userAuthRepositoryDB) GetIfExists(ctx context.Context, userId int) (*u
 	}
 
 	return nil, nil
+}
+
+func (db *userAuthRepositoryDB) SaveOrGet(ctx context.Context, model *user.User, tx pgx.Tx) (*user.UserSession, error) {
+	var userSession *user.UserSession
+
+	userSessionFound, _ := db.GetIfExists(ctx, model.Id)
+	if userSessionFound != nil {
+		userSession = userSessionFound
+	} else {
+		userSessionCreated, err := db.Save(ctx, model, tx)
+		if err != nil {
+			return nil, err
+		}
+		userSession = userSessionCreated
+	}
+
+	return userSession, nil
 }
