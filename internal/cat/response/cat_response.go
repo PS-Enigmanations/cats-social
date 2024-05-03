@@ -16,7 +16,7 @@ type CatShow struct {
 	ImageUrls   []string  `json:"imageUrls"`
 	HasMatched  bool      `json:"hasMatched"`
 	Description string    `json:"description" validate:"required,min=1,max=200"`
-	CreatedAt   time.Time `json:"created_at"`
+	CreatedAt   time.Time `json:"createdAt"`
 }
 
 type CatShows []CatShow

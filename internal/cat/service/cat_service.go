@@ -2,31 +2,37 @@ package service
 
 import (
 	"context"
+	"fmt"
 
+	"enigmanations/cats-social/internal/cat"
 	"enigmanations/cats-social/internal/cat/repository"
 	"enigmanations/cats-social/internal/cat/request"
 	"enigmanations/cats-social/internal/cat/response"
+
+	"enigmanations/cats-social/pkg/database"
+
+	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgxpool"
 )
 
 type CatService interface {
 	GetAllByParams(p *request.CatGetAllQueryParams) (*response.CatGetAllResponse, error)
-	// Create(payload *request.CatCreateRequest) (*response.CatCreateResponse, error)
-	//Update(payload *request.CatUpdateRequest, catId int) error
-	// Delete(catId int) error
+	Create(payload *request.CatCreateRequest, actorId int) (*response.CatCreateResponse, error)
 }
 
 type catService struct {
 	db      repository.CatRepository
+	pool    *pgxpool.Pool
 	Context context.Context
 }
 
 // NewService creates an API service.
-func NewCatService(db repository.CatRepository, ctx context.Context) CatService {
-	return &catService{db: db, Context: ctx}
+func NewCatService(ctx context.Context, pool *pgxpool.Pool, db repository.CatRepository) CatService {
+	return &catService{db: db, pool: pool, Context: ctx}
 }
 
-func (service *catService) GetAllByParams(p *request.CatGetAllQueryParams) (*response.CatGetAllResponse, error) {
-	cats, err := service.db.GetAllByParams(service.Context, p)
+func (svc *catService) GetAllByParams(p *request.CatGetAllQueryParams) (*response.CatGetAllResponse, error) {
+	cats, err := svc.db.GetAllByParams(svc.Context, p)
 
 	if err != nil {
 		return nil, err
@@ -36,82 +42,39 @@ func (service *catService) GetAllByParams(p *request.CatGetAllQueryParams) (*res
 	return response.CatToCatGetAllResponse(catShows), nil
 }
 
-/**
-func (service *catService) Create(payload *request.CatCreateRequest) (*response.CatCreateResponse, error) {
-	const USER_ID = 2
+func (svc *catService) Create(payload *request.CatCreateRequest, actorId int) (*response.CatCreateResponse, error) {
+	var result *response.CatCreateResponse
 
-	model := cat.Cat{
-		UserId:      USER_ID,
-		Name:        payload.Name,
-		Race:        cat.Race(payload.Race),
-		Sex:         cat.Sex(payload.Sex),
-		AgeInMonth:  payload.AgeInMonth,
-		Description: payload.Description,
+	if err := database.BeginTransaction(svc.Context, svc.pool, func(tx pgx.Tx) error {
+		model := cat.Cat{
+			UserId:      actorId,
+			Name:        payload.Name,
+			Race:        cat.Race(payload.Race),
+			Sex:         cat.Sex(payload.Sex),
+			AgeInMonth:  payload.AgeInMonth,
+			Description: payload.Description,
+		}
+
+		// call Create from repository/ datastore
+		cat, err := svc.db.Save(svc.Context, tx, model)
+
+		// if error occur, return nil for the response as well as return the error
+		if err != nil {
+			return nil
+		}
+
+		err = svc.db.SaveImageUrls(svc.Context, tx, cat.Id, payload.ImageUrls)
+		if err != nil {
+			return nil
+		}
+
+		cat.ImageUrls = payload.ImageUrls
+		result = response.CatToCatCreateResponse(*cat)
+
+		return nil
+	}); err != nil {
+		return nil, fmt.Errorf("transaction %w", err)
 	}
 
-	// call Create from repository/ datastore
-	cat, err := service.db.Save(service.Context, model)
-
-	// if error occur, return nil for the response as well as return the error
-	if err != nil {
-		return nil, err
-	}
-
-	err = service.db.SaveImageUrls(service.Context, cat.Id, payload.ImageUrls)
-	if err != nil {
-		return nil, err
-	}
-
-	cat.ImageUrls = payload.ImageUrls
-
-	return CatToCatResponse(*cat), nil
+	return result, nil
 }
-
-
-func (service *catService) Update(payload *request.CatUpdateRequest, catId int) error {
-	const USER_ID = 2
-
-	model := cat.Cat{
-		UserId:      USER_ID,
-		Id:          catId,
-		Name:        payload.Name,
-		Race:        cat.Race(payload.Race),
-		Sex:         cat.Sex(payload.Sex),
-		AgeInMonth:  payload.AgeInMonth,
-		Description: payload.Description,
-	}
-
-	cat, err := service.db.Update(service.Context, model)
-
-	if err != nil {
-		return nil, err
-	}
-
-	err = service.db.DeleteImageUrls(service.Context, cat.Id)
-	if err != nil {
-		return nil, err
-	}
-
-	err = service.db.SaveImageUrls(service.Context, cat.Id, payload.ImageUrls)
-	if err != nil {
-		return nil, err
-	}
-
-	cat.ImageUrls = payload.ImageUrls
-
-	return CatToCatResponse(*cat), nil
-}
-
-func (service *catService) Delete(catId int) error {
-	_, err := service.db.FindById(service.Context, catId)
-	if err != nil {
-		return err
-	}
-
-	err = service.db.Delete(service.Context, catId)
-	if err != nil {
-		return err
-	}
-	return nil
-}
-*/

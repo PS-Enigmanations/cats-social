@@ -4,7 +4,6 @@ import (
 	"context"
 	"enigmanations/cats-social/internal/cat"
 	"enigmanations/cats-social/internal/cat/request"
-	"enigmanations/cats-social/pkg/database"
 	"errors"
 	"fmt"
 	"strconv"
@@ -17,11 +16,11 @@ import (
 type CatRepository interface {
 	GetAllByParams(ctx context.Context, params *request.CatGetAllQueryParams) ([]*cat.Cat, error)
 	FindById(ctx context.Context, catId int) (*cat.Cat, error)
-	Save(ctx context.Context, model cat.Cat) (*cat.Cat, error)
-	Update(ctx context.Context, model cat.Cat) (*cat.Cat, error)
-	SaveImageUrls(ctx context.Context, catId int, urls []string) error
-	Delete(ctx context.Context, catId int) error
-	DeleteImageUrls(ctx context.Context, catId int) error
+	Save(ctx context.Context, tx pgx.Tx, model cat.Cat) (*cat.Cat, error)
+	Update(ctx context.Context, tx pgx.Tx, model cat.Cat) (*cat.Cat, error)
+	SaveImageUrls(ctx context.Context, tx pgx.Tx, catId int, urls []string) error
+	Delete(ctx context.Context, tx pgx.Tx, catId int) error
+	DeleteImageUrls(ctx context.Context, tx pgx.Tx, catId int) error
 }
 
 type Database struct {
@@ -170,125 +169,102 @@ func (db *Database) FindById(ctx context.Context, catId int) (*cat.Cat, error) {
 	return c, nil
 }
 
-func (db *Database) Save(ctx context.Context, model cat.Cat) (*cat.Cat, error) {
-	var result *cat.Cat
+func (db *Database) Save(ctx context.Context, tx pgx.Tx, model cat.Cat) (*cat.Cat, error) {
+	const sql = `INSERT into cats
+		("user_id", "name", "race", "sex", "age_in_month", "description")
+		VALUES ($1, $2, $3, $4, $5, $6)
+		RETURNING id, name, race, sex, age_in_month, description;`
 
-	if err := database.BeginTransaction(ctx, db.pool, func(tx pgx.Tx) error {
-		const q = `INSERT into cats
-			("user_id", "name", "race", "sex", "age_in_month", "description")
-			VALUES ($1, $2, $3, $4, $5, $6)
-			RETURNING id, name, race, sex, age_in_month, description;`
+	// execute query to insert new record. it takes 'cat' variable as its input
+	// the result will be placed in 'row' variable
+	row := tx.QueryRow(
+		ctx,
+		sql,
+		model.UserId,
+		model.Name,
+		model.Race,
+		model.Sex,
+		model.AgeInMonth,
+		model.Description,
+	)
 
-		// execute query to insert new record. it takes 'cat' variable as its input
-		// the result will be placed in 'row' variable
-		row := db.pool.QueryRow(
-			ctx, q,
-			model.UserId,
-			model.Name,
-			model.Race,
-			model.Sex,
-			model.AgeInMonth,
-			model.Description,
-		)
+	// create 'c' variable as 'Cat' type to contain scanned data value from 'row' variable
+	c := new(cat.Cat)
 
-		// create 'c' variable as 'Cat' type to contain scanned data value from 'row' variable
-		c := new(cat.Cat)
+	// scan 'row' variable and place the value to 'c' variable as well as check for error
+	err := row.Scan(
+		&c.Id,
+		&c.Name,
+		&c.Race,
+		&c.Sex,
+		&c.AgeInMonth,
+		&c.Description,
+	)
 
-		// scan 'row' variable and place the value to 'c' variable as well as check for error
-		err := row.Scan(
-			&c.Id,
-			&c.Name,
-			&c.Race,
-			&c.Sex,
-			&c.AgeInMonth,
-			&c.Description,
-		)
-
-		// return nil and error if scan operation is fail/ error found
-		if err != nil {
-			return fmt.Errorf("Save %w", err)
-		}
-
-		result = c
-		return nil
-	}); err != nil {
-		return nil, fmt.Errorf("Save transaction %w", err)
+	// return nil and error if scan operation is fail/ error found
+	if err != nil {
+		return nil, fmt.Errorf("Save %w", err)
 	}
 
-	// return 'c' and nil if no error found
-	return result, nil
+	return c, nil
 }
 
-func (db *Database) Update(ctx context.Context, model cat.Cat) (*cat.Cat, error) {
-	var result *cat.Cat
+func (db *Database) Update(ctx context.Context, tx pgx.Tx, model cat.Cat) (*cat.Cat, error) {
+	const sql = `UPDATE cats
+		SET name = $2,
+			race = $3,
+			sex = $4,
+			age_in_month = $5,
+			description = $6
+		WHERE id = $1
+		RETURNING id, name, race, sex, age_in_month, description;`
 
-	if err := database.BeginTransaction(ctx, db.pool, func(tx pgx.Tx) error {
-		const q = `UPDATE cats
-			SET name = $2,
-				race = $3,
-				sex = $4,
-				age_in_month = $5,
-				description = $6
-			WHERE id = $1
-			RETURNING id, name, race, sex, age_in_month, description;`
+	row := tx.QueryRow(
+		ctx,
+		sql,
+		model.Id,
+		model.Name,
+		model.Race,
+		model.Sex,
+		model.AgeInMonth,
+		model.Description,
+	)
 
-		row := db.pool.QueryRow(
-			ctx, q,
-			model.Id,
-			model.Name,
-			model.Race,
-			model.Sex,
-			model.AgeInMonth,
-			model.Description,
-		)
-
-		c := new(cat.Cat)
-		err := row.Scan(
-			&c.Id,
-			&c.Name,
-			&c.Race,
-			&c.Sex,
-			&c.AgeInMonth,
-			&c.Description,
-		)
-		if err != nil {
-			return fmt.Errorf("Update %w", err)
-		}
-
-		result = c
-		return nil
-	}); err != nil {
-		return nil, fmt.Errorf("Update transaction %w", err)
+	c := new(cat.Cat)
+	err := row.Scan(
+		&c.Id,
+		&c.Name,
+		&c.Race,
+		&c.Sex,
+		&c.AgeInMonth,
+		&c.Description,
+	)
+	if err != nil {
+		return nil, fmt.Errorf("Update %w", err)
 	}
 
-	return result, nil
+	return c, nil
 }
 
-func (db *Database) SaveImageUrls(ctx context.Context, catId int, urls []string) error {
-	if err := database.BeginTransaction(ctx, db.pool, func(tx pgx.Tx) error {
-		const q = `INSERT into cat_images
-			("cat_id", "url")
-			VALUES ($1, $2);`
+func (db *Database) SaveImageUrls(ctx context.Context, tx pgx.Tx, catId int, urls []string) error {
+	const sql = `INSERT into cat_images
+		("cat_id", "url")
+		VALUES ($1, $2);`
 
-		for _, url := range urls {
-			_, err := tx.Exec(ctx, q, catId, url)
-			if err != nil {
-				return fmt.Errorf("SaveImageUrls %w", err)
-			}
+	for _, url := range urls {
+		_, err := tx.Exec(ctx, sql, catId, url)
+		if err != nil {
+			return fmt.Errorf("SaveImageUrls %w", err)
 		}
-
-		return nil
-	}); err != nil {
-		return fmt.Errorf("SaveImageUrls transaction %w", err)
 	}
 
 	return nil
 }
 
-func (db *Database) Delete(ctx context.Context, catId int) error {
-	const q = `UPDATE cats SET deleted_at = NOW() WHERE id = $1`
+func (db *Database) Delete(ctx context.Context, tx pgx.Tx, catId int) error {
+	const sql = `UPDATE cats SET deleted_at = NOW() WHERE id = $1`
 
-	_, err := db.pool.Exec(ctx, q, catId)
+	_, err := tx.Exec(ctx, sql, catId)
 	if err != nil {
 		return fmt.Errorf("Delete %w", err)
 	}
@@ -296,10 +272,10 @@ func (db *Database) Delete(ctx context.Context, catId int) error {
 	return nil
 }
 
-func (db *Database) DeleteImageUrls(ctx context.Context, catId int) error {
-	const q = `DELETE FROM cat_images WHERE cat_id = $1`
+func (db *Database) DeleteImageUrls(ctx context.Context, tx pgx.Tx, catId int) error {
+	const sql = `DELETE FROM cat_images WHERE cat_id = $1`
 
-	_, err := db.pool.Exec(ctx, q, catId)
+	_, err := tx.Exec(ctx, sql, catId)
 	if err != nil {
 		return fmt.Errorf("Delete Image Urls %w", err)
 	}
