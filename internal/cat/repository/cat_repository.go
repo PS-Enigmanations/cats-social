@@ -14,6 +14,7 @@ type CatRepository interface {
 	GetAll(ctx context.Context) ([]*cat.Cat, error)
 	FindById(ctx context.Context, catId int) (*cat.Cat, error)
 	Save(ctx context.Context, model cat.Cat) (*cat.Cat, error)
+	Update(ctx context.Context, model cat.Cat) (*cat.Cat, error)
 	SaveImageUrls(ctx context.Context, catId int, urls []string) error
 	Delete(ctx context.Context, catId int) error
 	DeleteImageUrls(ctx context.Context, catId int) error
@@ -153,6 +154,51 @@ func (db *Database) Save(ctx context.Context, model cat.Cat) (*cat.Cat, error) {
 	return result, nil
 }
 
+func (db *Database) Update(ctx context.Context, model cat.Cat) (*cat.Cat, error) {
+	var result *cat.Cat
+
+	if err := database.BeginTransaction(ctx, db.pool, func(tx pgx.Tx) error {
+		const q = `UPDATE cats
+			SET name = $1,
+				race = $2,
+				sex = $3,
+				age_in_month = $4,
+				description = $5
+			WHERE id = $6
+			RETURNING id, name, race, sex, age_in_month, description;`
+
+		row := db.pool.QueryRow(
+			ctx, q,
+			model.Name,
+			model.Race,
+			model.Sex,
+			model.AgeInMonth,
+			model.Description,
+			model.Id,
+		)
+
+		c := new(cat.Cat)
+		err := row.Scan(
+			&c.Id,
+			&c.Name,
+			&c.Race,
+			&c.Sex,
+			&c.AgeInMonth,
+			&c.Description,
+		)
+		if err != nil {
+			return fmt.Errorf("Update %w", err)
+		}
+
+		result = c
+		return nil
+	}); err != nil {
+		return nil, fmt.Errorf("Update transaction %w", err)
+	}
+
+	return result, nil
+}
+
 func (db *Database) SaveImageUrls(ctx context.Context, catId int, urls []string) error {
 	if err := database.BeginTransaction(ctx, db.pool, func(tx pgx.Tx) error {
 		const q = `INSERT into cat_images
@@ -175,7 +221,7 @@ func (db *Database) SaveImageUrls(ctx context.Context, catId int, urls []string)
 }
 
 func (db *Database) Delete(ctx context.Context, catId int) error {
-	const q = `DELETE FROM cats WHERE id = $1`
+	const q = `UPDATE cats SET deleted_at = NOW() WHERE id = $1`
 
 	_, err := db.pool.Exec(ctx, q, catId)
 	if err != nil {
