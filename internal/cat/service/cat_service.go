@@ -77,6 +77,7 @@ func (service *catService) Update(payload *cat.CatUpdateRequest, catId int) (*Ca
 
 	model := cat.Cat{
 		UserId:      USER_ID,
+		Id:          catId,
 		Name:        payload.Name,
 		Race:        cat.Race(payload.Race),
 		Sex:         cat.Sex(payload.Sex),
@@ -84,13 +85,7 @@ func (service *catService) Update(payload *cat.CatUpdateRequest, catId int) (*Ca
 		Description: payload.Description,
 	}
 
-	cat, err := service.db.FindById(service.Context, catId)
-
-	if cat == nil {
-		return nil, err
-	}
-
-	cat, err = service.db.Update(service.Context, model)
+	cat, err := service.db.Update(service.Context, model)
 
 	if err != nil {
 		return nil, err
