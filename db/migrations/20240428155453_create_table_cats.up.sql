@@ -9,8 +9,8 @@ CREATE TABLE "public"."cats" (
     "description" varchar(200),
     "is_already_matched" boolean,
     "created_at" timestamptz NOT NULL DEFAULT now(),
-    "updated_at" timestamptz DEFAULT now(),
-    "deleted_at" timestamptz DEFAULT now(),
+    "updated_at" timestamptz NULL,
+	"deleted_at" timestamptz NULL,
     CONSTRAINT "fk_cats_user_id" FOREIGN KEY ("user_id") REFERENCES "public"."users" ("id"),
     PRIMARY KEY ("id")
 );
