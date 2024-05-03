@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	//"enigmanations/cats-social/middleware"
 	"enigmanations/cats-social/middleware"
 	"enigmanations/cats-social/pkg/database"
 	"fmt"
