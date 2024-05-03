@@ -19,12 +19,27 @@ type CatGetAllQueryParams struct {
 
 type CatCreateRequest struct {
 	Name        string `json:"name" validate:"required,min=1,max=30"`
-	Race        string `validate:"required,oneof=Persian MaineCoon Siamese Ragdoll Bengal Sphynx BritishShorthair Abyssinian ScottishFold Birman"`
+	Race        CatRace  `validate:"required"`
 	Sex         string `validate:"required,oneof=male female"`
 	AgeInMonth  int    `validate:"required,numeric,min=1,max=120082"`
 	Description string `validate:"required"`
 	ImageUrls   []string `validate:"required,min=1,dive,required,url"`
 }
+
+type CatRace string
+
+const (
+    Persian          CatRace = "Persian"
+    MaineCoon        CatRace = "Maine Coon"
+    Siamese          CatRace = "Siamese"
+    Ragdoll          CatRace = "Ragdoll"
+    Bengal           CatRace = "Bengal"
+    Sphynx           CatRace = "Sphynx"
+    BritishShorthair CatRace = "British Shorthair"
+    Abyssinian       CatRace = "Abyssinian"
+    ScottishFold     CatRace = "Scottish Fold"
+    Birman           CatRace = "Birman"
+)
 
 type CatUpdateRequest struct {
 	Id          int    `json:"id" validate:"required"`

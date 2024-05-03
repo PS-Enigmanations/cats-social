@@ -39,7 +39,6 @@ type CatMatchValue struct {
     UserCatDescription       string   `json:"user_cat_description"`
     UserCatIsAlreadyMatched  bool     `json:"user_cat_has_matched"`
     UserCatCreatedAt         time.Time `json:"user_cat_created_at"`
-    UserCatUpdatedAt         time.Time `json:"user_cat_updated_at"`
     MatchCatId               int      `json:"match_cat_id"`
     MatchCatUserId           int      `json:"match_cat_user_id"`
     MatchCatName             string   `json:"match_cat_name"`
@@ -49,7 +48,6 @@ type CatMatchValue struct {
     MatchCatDescription      string   `json:"match_cat_description"`
     MatchCatIsAlreadyMatched bool     `json:"match_cat_has_matched"`
     MatchCatCreatedAt        time.Time `json:"match_cat_created_at"`
-    MatchCatUpdatedAt        time.Time `json:"match_cat_updated_at"`
     UserCatImageUrls         []string `json:"user_cat_image_urls"`
     MatchCatImageUrls        []string `json:"match_cat_image_urls"`
 }

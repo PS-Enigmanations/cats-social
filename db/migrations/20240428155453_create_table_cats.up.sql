@@ -7,7 +7,7 @@ CREATE TABLE "public"."cats" (
     "sex" varchar(6),
     "age_in_month" int,
     "description" varchar(200),
-    "has_matched" boolean,
+    "has_matched" boolean DEFAULT FALSE,
     "created_at" timestamptz NOT NULL DEFAULT now(),
     "updated_at" timestamptz NULL,
 	"deleted_at" timestamptz NULL,

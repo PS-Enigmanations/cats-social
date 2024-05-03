@@ -4,7 +4,6 @@ import (
 	"context"
 	"enigmanations/cats-social/internal/cat"
 	"enigmanations/cats-social/internal/cat/request"
-	"errors"
 	"fmt"
 	"strconv"
 	"strings"
@@ -76,7 +75,30 @@ func (db *Database) GetAllByParams(ctx context.Context, params *request.CatGetAl
 	}
 	// AgeInMonth
 	if params.AgeInMonth != "" {
-		return nil, errors.New("Sorry, currently we didn't support this parameter yet!")
+		// Parse the input value
+		ageFilter := strings.TrimSpace(params.AgeInMonth)
+		var op string
+		var ageValue int
+		if strings.HasPrefix(ageFilter, "<") {
+			op = "<"
+			ageValue, _ = strconv.Atoi(strings.TrimPrefix(ageFilter, "<"))
+		} else if strings.HasPrefix(ageFilter, ">") {
+			op = ">"
+			ageValue, _ = strconv.Atoi(strings.TrimPrefix(ageFilter, ">"))
+		} else {
+			op = "="
+			ageValue, _ = strconv.Atoi(ageFilter)
+		}
+	
+		// Construct the where clause based on the parsed input
+		switch op {
+		case "<":
+			where = append(where, fmt.Sprintf(`"age_in_month" <= %d`, ageValue))
+		case ">":
+			where = append(where, fmt.Sprintf(`"age_in_month" >= %d`, ageValue))
+		default:
+			where = append(where, fmt.Sprintf(`"age_in_month" = %d`, ageValue))
+		}
 	}
 	// Owned
 	if params.Owned != "" {
