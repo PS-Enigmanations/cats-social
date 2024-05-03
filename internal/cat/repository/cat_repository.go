@@ -81,7 +81,11 @@ func (db *Database) GetAllByParams(ctx context.Context, params *request.CatGetAl
 	// Owned
 	if params.Owned != "" {
 		args = append(args, actorId)
-		where = append(where, fmt.Sprintf(`"user_id" = $%d`, len(args)))
+		if params.Owned != "true" {
+			where = append(where, fmt.Sprintf(`"user_id" = $%d`, len(args)))
+		} else {
+			where = append(where, fmt.Sprintf(`"user_id" != $%d`, len(args)))
+		}
 	}
 	// Search
 	if params.Search != "" {

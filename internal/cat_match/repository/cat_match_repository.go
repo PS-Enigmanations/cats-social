@@ -63,7 +63,7 @@ func (db *catMatchRepositoryDB) Save(ctx context.Context, model *catmatch.CatMat
 
 func (db *catMatchRepositoryDB) GetAssociationByCatId(ctx context.Context, id int) (*AssociationByCatIdValue, error) {
 	const sql = `
-		SELECT c.id, c.user_id, c.name, c.race, c.sex, c.age_in_month, c.description, c.is_already_matched
+		SELECT c.id, c.user_id, c.name, c.race, c.sex, c.age_in_month, c.description, c.has_matched
 		FROM cats c WHERE c.id = $1 AND deleted_at IS NULL LIMIT 1;
 	`
 	row := db.pool.QueryRow(ctx, sql, id)
@@ -87,7 +87,7 @@ func (db *catMatchRepositoryDB) GetAssociationByCatId(ctx context.Context, id in
 
 func (db *catMatchRepositoryDB) UpdateCatAlreadyMatches(ctx context.Context, ids []int, matched bool, tx pgx.Tx) error {
 	const sql = `
-		UPDATE cats SET is_already_matched=@alreadyMatched WHERE id = @catId;
+		UPDATE cats SET has_matched=@alreadyMatched WHERE id = @catId;
 	`
 	batch := &pgx.Batch{}
 	for _, id := range ids {
@@ -163,7 +163,7 @@ func (db *catMatchRepositoryDB) GetByIssuedOrReceiver(ctx context.Context, id in
 		uc.sex AS user_cat_sex,
 		uc.age_in_month AS user_cat_age_in_month,
 		uc.description AS user_cat_description,
-		uc.is_already_matched AS user_cat_is_already_matched,
+		uc.has_matched AS user_cat_is_already_matched,
 		uc.created_at AS user_cat_created_at,
 		uc.updated_at AS user_cat_updated_at,
 		mc.id AS match_cat_id,
@@ -173,7 +173,7 @@ func (db *catMatchRepositoryDB) GetByIssuedOrReceiver(ctx context.Context, id in
 		mc.sex AS match_cat_sex,
 		mc.age_in_month AS match_cat_age_in_month,
 		mc.description AS match_cat_description,
-		mc.is_already_matched AS match_cat_is_already_matched,
+		mc.has_matched AS match_cat_is_already_matched,
 		mc.created_at AS match_cat_created_at,
 		mc.updated_at AS match_cat_updated_at
 	FROM 
