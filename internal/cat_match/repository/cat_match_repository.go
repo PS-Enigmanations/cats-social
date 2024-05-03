@@ -27,6 +27,7 @@ type CatMatchRepository interface {
 	Save(ctx context.Context, model *catmatch.CatMatch, tx pgx.Tx) error
 	UpdateCatAlreadyMatches(ctx context.Context, ids []int, matched bool, tx pgx.Tx) error
 	GetAssociationByCatId(ctx context.Context, id int) (*AssociationByCatIdValue, error)
+	Destroy(ctx context.Context, id int64, tx pgx.Tx) error
 }
 
 type catMatchRepositoryDB struct {
@@ -106,4 +107,21 @@ func (db *catMatchRepositoryDB) UpdateCatAlreadyMatches(ctx context.Context, ids
 	}
 
 	return results.Close()
+}
+
+func (db *catMatchRepositoryDB) Destroy(ctx context.Context, id int64, tx pgx.Tx) error {
+	const sql = `
+		UPDATE cat_matches SET deleted_at=now() WHERE id = $1
+	`
+	_, err := tx.Exec(
+		ctx,
+		sql,
+		id,
+	)
+	if err != nil {
+		log.Fatal("Cannot delete cat match on database", slog.Any("error", err))
+		return errors.New("Cannot delete cat match on database")
+	}
+
+	return nil
 }

@@ -120,6 +120,7 @@ func main() {
 
 	// Cat Match api endpoint
 	router.POST("/v1/cat/match", auth.ProtectedHandler(catMatchController.CatMatchCreate))
+	router.DELETE("/v1/cat/match/:id", auth.ProtectedHandler(catMatchController.CatMatchDestroy))
 
 	// Run the server
 	appServeAddr := ":" + os.Getenv("APP_PORT")

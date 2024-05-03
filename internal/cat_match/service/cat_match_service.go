@@ -17,6 +17,7 @@ import (
 
 type CatMatchService interface {
 	Create(req *request.CatMatchRequest, actorId int64) error
+	Destroy(id int64) error
 }
 
 type CatMatchDependency struct {
@@ -116,6 +117,24 @@ func (svc *catMatchService) Create(req *request.CatMatchRequest, actorId int64) 
 			true,
 			tx,
 		)
+		if err != nil {
+			return err
+		}
+
+		return nil
+	}); err != nil {
+		return fmt.Errorf("transaction %w", err)
+	}
+
+	return nil
+}
+
+func (svc *catMatchService) Destroy(id int64) error {
+	repo := svc.repo
+
+	if err := database.BeginTransaction(svc.Context, svc.pool, func(tx pgx.Tx) error {
+		// Destroy cat matches
+		err := repo.CatMatch.Destroy(svc.Context, id, tx)
 		if err != nil {
 			return err
 		}
