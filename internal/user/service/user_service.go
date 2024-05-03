@@ -8,6 +8,7 @@ import (
 	"enigmanations/cats-social/internal/user/request"
 	"enigmanations/cats-social/internal/user/response"
 	"enigmanations/cats-social/pkg/bcrypt"
+	"enigmanations/cats-social/pkg/jwt"
 	"fmt"
 	"strings"
 
@@ -23,7 +24,8 @@ type UserService interface {
 }
 
 type UserDependency struct {
-	User repository.UserRepository
+	User    repository.UserRepository
+	Session repository.UserAuthRepository
 }
 
 type userService struct {
@@ -83,7 +85,11 @@ func (svc *userService) Create(req *request.UserRegisterRequest) (*response.User
 		return nil, err
 	}
 
-	var result *user.User
+	var (
+		userCredential *user.User
+		accessToken    string
+	)
+
 	if err := database.BeginTransaction(svc.Context, svc.pool, func(tx pgx.Tx) error {
 		model := user.User{
 			Email:    payload.Email,
@@ -91,16 +97,30 @@ func (svc *userService) Create(req *request.UserRegisterRequest) (*response.User
 			Password: payload.Password,
 		}
 
+		// Create user
 		userCreated, err := repo.User.Save(svc.Context, model, tx)
 		if err != nil {
 			return err
 		}
+		userCredential = userCreated
 
-		result = userCreated
+		_, err = repo.Session.SaveOrGet(svc.Context, userCredential, tx)
+		if err != nil {
+			return err
+		}
+
+		// Generate access token
+		token, err := jwt.GenerateAccessToken(uint64(userCredential.Id), userCredential)
+		if err != nil {
+			return fmt.Errorf("%w", err)
+		}
+
+		accessToken = token
+
 		return nil
 	}); err != nil {
 		return nil, fmt.Errorf("transaction %w", err)
 	}
 
-	return response.UserToUserCreateResponse(*result), nil
+	return response.UserToUserCreateResponse(*userCredential, accessToken), nil
 }
