@@ -13,13 +13,9 @@ import (
 
 	"enigmanations/cats-social/pkg/database"
 
-	emailverifier "github.com/AfterShip/email-verifier"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
-
-type CreateOrGetSessionValue struct {
-}
 
 type UserAuthService interface {
 	Login(req *request.UserLoginRequest) (*response.UserLoginResponse, error)
@@ -51,15 +47,6 @@ func (svc *userAuthService) Login(req *request.UserLoginRequest) (*response.User
 
 	// Check email
 	if req.Email != "" {
-		var verifier = emailverifier.NewVerifier()
-		ret, err := verifier.Verify(req.Email)
-		if err != nil {
-			return nil, errs.UserErrEmailInvalidFormat
-		}
-		if !ret.Syntax.Valid {
-			return nil, errs.UserErrEmailInvalidFormat
-		}
-
 		// Get user
 		userCredentialFound, err := repo.User.GetByEmail(svc.Context, req.Email)
 		if err != nil {

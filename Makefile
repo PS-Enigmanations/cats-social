@@ -32,6 +32,10 @@ up:
 up-prod:
 	JWT_SECRET=a-very-secretive-secret-key ./main
 
+## run k6
+k6:
+	cd scripts/k6 && BASE_URL=http://localhost:8080 make run
+
 ## run golang-migrate up
 migrateup:
 	migrate -database $(DATABASE_URL) -path db/migrations up

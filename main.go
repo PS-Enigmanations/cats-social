@@ -94,8 +94,8 @@ func main() {
 	userController := userControllerInternal.NewUserController(userService, userAuthService)
 
 	// Users api endpoint
-	router.POST("/v1/register", userController.UserRegister)
-	router.POST("/v1/login", userController.UserLogin)
+	router.POST("/v1/user/register", userController.UserRegister)
+	router.POST("/v1/user/login", userController.UserLogin)
 
 	// Cats
 	catRepository := catRepositoryInternal.NewCatRepository(pgPool)
