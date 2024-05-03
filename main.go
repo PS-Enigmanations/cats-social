@@ -105,6 +105,7 @@ func main() {
 	// Cats api endpoint
 	router.GET("/v1/cats", auth.ProtectedHandler(catController.CatGetController))
 	router.POST("/v1/cats", auth.ProtectedHandler(catController.CatCreateController))
+	router.PUT("/v1/cats/:id", auth.ProtectedHandler(catController.CatUpdateController))
 	router.DELETE("/v1/cats/:id", auth.ProtectedHandler(catController.CatDeleteController))
 
 	// Cat Match
