@@ -22,7 +22,7 @@ type CatCreateRequest struct {
 	Race        string `validate:"required,oneof=Persian MaineCoon Siamese Ragdoll Bengal Sphynx BritishShorthair Abyssinian ScottishFold Birman"`
 	Sex         string `validate:"required,oneof=male female"`
 	AgeInMonth  int    `validate:"required,numeric,min=1,max=120082"`
-	Description string
+	Description string `validate:"required"`
 	ImageUrls   []string `validate:"required,min=1,dive,required,url"`
 }
 
