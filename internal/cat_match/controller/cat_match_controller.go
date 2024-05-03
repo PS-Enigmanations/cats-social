@@ -17,6 +17,8 @@ import (
 type CatMatchController interface {
 	CatMatchCreate(w http.ResponseWriter, r *http.Request, _ httprouter.Params)
 	CatMatchDestroy(w http.ResponseWriter, r *http.Request, p httprouter.Params)
+	CatMatchApprove(w http.ResponseWriter, r *http.Request, p httprouter.Params)
+	CatMatchReject(w http.ResponseWriter, r *http.Request, p httprouter.Params)
 }
 
 type catMatchController struct {
@@ -73,6 +75,57 @@ func (c *catMatchController) CatMatchDestroy(w http.ResponseWriter, r *http.Requ
 	catId, err := strconv.Atoi(id)
 
 	if err = c.Service.Destroy(int64(catId)); err != nil {
+		return
+	}
+
+	w.WriteHeader(http.StatusOK)
+	w.Header().Add("Content-Type", "application/json")
+
+	return
+}
+
+
+func (c *catMatchController) CatMatchApprove(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
+	var reqBody request.CatMatchApproveRejectRequest
+
+	if err := json.NewDecoder(r.Body).Decode(&reqBody); err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	validate := validator.New()
+	err := validate.Struct(reqBody)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	if err = c.Service.Approve(int(reqBody.MatchId)); err != nil {
+		return
+	}
+
+	w.WriteHeader(http.StatusOK)
+	w.Header().Add("Content-Type", "application/json")
+
+	return
+}
+
+func (c *catMatchController) CatMatchReject(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
+	var reqBody request.CatMatchApproveRejectRequest
+
+	if err := json.NewDecoder(r.Body).Decode(&reqBody); err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	validate := validator.New()
+	err := validate.Struct(reqBody)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	if err = c.Service.Reject(int(reqBody.MatchId)); err != nil {
 		return
 	}
 

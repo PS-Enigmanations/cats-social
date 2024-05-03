@@ -26,6 +26,7 @@ type AssociationByCatIdValue struct {
 type CatMatchRepository interface {
 	Save(ctx context.Context, model *catmatch.CatMatch, tx pgx.Tx) error
 	UpdateCatAlreadyMatches(ctx context.Context, ids []int, matched bool, tx pgx.Tx) error
+	UpdateCatMatchStatus(ctx context.Context, id int, status string, tx pgx.Tx) error
 	GetAssociationByCatId(ctx context.Context, id int) (*AssociationByCatIdValue, error)
 	Destroy(ctx context.Context, id int64, tx pgx.Tx) error
 }
@@ -121,6 +122,24 @@ func (db *catMatchRepositoryDB) Destroy(ctx context.Context, id int64, tx pgx.Tx
 	if err != nil {
 		log.Fatal("Cannot delete cat match on database", slog.Any("error", err))
 		return errors.New("Cannot delete cat match on database")
+	}
+
+	return nil
+}
+
+func (db *catMatchRepositoryDB) UpdateCatMatchStatus(ctx context.Context, id int, status string, tx pgx.Tx) error {
+	const sql = `
+		UPDATE cat_matches SET status=$1 WHERE id = $2
+	`
+	_, err := tx.Exec(
+		ctx,
+		sql,
+		status,
+		id,
+	)
+	if err != nil {
+		log.Fatal("Cannot update cat match status on database", slog.Any("error", err))
+		return errors.New("Cannot update cat match status on database")
 	}
 
 	return nil
