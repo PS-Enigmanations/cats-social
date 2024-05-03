@@ -8,6 +8,7 @@ import (
 	"errors"
 	"log"
 	"net/http"
+	"regexp"
 
 	"github.com/go-playground/validator"
 )
@@ -80,6 +81,14 @@ func (c *userController) UserLogin(w http.ResponseWriter, r *http.Request) {
 	err := validate.Struct(reqBody)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	emailPattern := `^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$`
+	regex := regexp.MustCompile(emailPattern)
+
+	if !regex.MatchString(reqBody.Email) {
+		http.Error(w, "Invalid email format", http.StatusBadRequest)
 		return
 	}
 
