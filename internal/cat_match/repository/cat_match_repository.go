@@ -28,6 +28,7 @@ type CatMatchRepository interface {
 	UpdateCatAlreadyMatches(ctx context.Context, ids []int, matched bool, tx pgx.Tx) error
 	UpdateCatMatchStatus(ctx context.Context, id int, status string, tx pgx.Tx) error
 	GetAssociationByCatId(ctx context.Context, id int) (*AssociationByCatIdValue, error)
+	GetByIssuedOrReceiver(ctx context.Context, id int) ([]*catmatch.CatMatchValue, error)
 	Destroy(ctx context.Context, id int64, tx pgx.Tx) error
 }
 
@@ -143,4 +144,118 @@ func (db *catMatchRepositoryDB) UpdateCatMatchStatus(ctx context.Context, id int
 	}
 
 	return nil
+}
+
+func (db *catMatchRepositoryDB) GetByIssuedOrReceiver(ctx context.Context, id int) ([]*catmatch.CatMatchValue, error) {
+	const sql = `
+	SELECT 
+		cm.id AS cat_match_id,
+		cm.message,
+		cm.status,
+		cm.created_at AS match_created_at,
+		u.name AS user_name,
+		u.email AS user_email,
+		u.created_at AS user_created_at,
+		uc.id AS user_cat_id,
+		uc.user_id AS user_cat_user_id,
+		uc.name AS user_cat_name,
+		uc.race AS user_cat_race,
+		uc.sex AS user_cat_sex,
+		uc.age_in_month AS user_cat_age_in_month,
+		uc.description AS user_cat_description,
+		uc.is_already_matched AS user_cat_is_already_matched,
+		uc.created_at AS user_cat_created_at,
+		uc.updated_at AS user_cat_updated_at,
+		mc.id AS match_cat_id,
+		mc.user_id AS match_cat_user_id,
+		mc.name AS match_cat_name,
+		mc.race AS match_cat_race,
+		mc.sex AS match_cat_sex,
+		mc.age_in_month AS match_cat_age_in_month,
+		mc.description AS match_cat_description,
+		mc.is_already_matched AS match_cat_is_already_matched,
+		mc.created_at AS match_cat_created_at,
+		mc.updated_at AS match_cat_updated_at
+	FROM 
+		cat_matches AS cm
+	JOIN 
+		users AS u ON cm.issued_by = u.id
+	JOIN 
+		cats AS uc ON cm.user_cat_id = uc.id
+	JOIN 
+		cats AS mc ON cm.match_cat_id = mc.id
+	LEFT JOIN
+		cat_images AS uci ON uc.id = uci.cat_id
+	LEFT JOIN
+		cat_images AS mci ON mc.id = mci.cat_id
+	WHERE 
+		cm.issued_by = $1 OR mc.user_id = $1
+	GROUP BY
+		cm.id,
+		u.id,
+		uc.id,
+		mc.id;
+
+	`
+	// execute query
+	rows, err := db.pool.Query(ctx, sql, id)
+
+	if err != nil {
+		return nil, err
+	}
+
+	// close rows if error ocur
+	defer rows.Close()
+	// iterate Rows
+	var cms []*catmatch.CatMatchValue
+	if rows != nil {
+		for rows.Next() {
+	// 		// create 'cm' for struct 'CatMatch'
+			cm := new(catmatch.CatMatchValue)
+
+			// scan rows and place it in 'cm' (cat match) container
+			err := rows.Scan(
+				&cm.CatMatchId,
+				&cm.Message,
+				&cm.Status,
+				&cm.MatchCreatedAt,
+				&cm.UserName,
+				&cm.UserEmail,
+				&cm.UserCreatedAt,
+				&cm.UserCatId,
+				&cm.UserCatUserId,
+				&cm.UserCatName,
+				&cm.UserCatRace,
+				&cm.UserCatSex,
+				&cm.UserCatAgeInMonth,
+				&cm.UserCatDescription,
+				&cm.UserCatIsAlreadyMatched,
+				&cm.UserCatCreatedAt,
+				&cm.UserCatUpdatedAt,
+				&cm.MatchCatId,
+				&cm.MatchCatUserId,
+				&cm.MatchCatName,
+				&cm.MatchCatRace,
+				&cm.MatchCatSex,
+				&cm.MatchCatAgeInMonth,
+				&cm.MatchCatDescription,
+				&cm.MatchCatIsAlreadyMatched,
+				&cm.MatchCatCreatedAt,
+				&cm.MatchCatUpdatedAt,
+				// &cm.UserCatImageUrls,
+				// &cm.MatchCatImageUrls,
+			)
+
+	 		// return nil and error if scan operation fail
+			if err != nil {
+				return nil, err
+			}
+
+			// add c to cats slice
+			cms = append(cms, cm)
+		}
+	}
+
+	// return cats slice and nil for the error
+	return cms, nil
 }

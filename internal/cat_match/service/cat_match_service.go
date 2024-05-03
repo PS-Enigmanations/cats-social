@@ -20,6 +20,7 @@ type CatMatchService interface {
 	Approve(matchId int) error
 	Reject(matchId int) error
 	Destroy(id int64) error
+	GetByIssuedOrReceiver(matchId int) ([]*catmatch.CatMatchResponse, error)
 }
 
 type CatMatchDependency struct {
@@ -184,3 +185,22 @@ func (svc *catMatchService) Reject(matchId int) error {
 	
 	return nil
 }
+
+func (svc *catMatchService) GetByIssuedOrReceiver(matchId int) ([]*catmatch.CatMatchResponse, error) {
+	repo := svc.repo
+
+	data, err := repo.CatMatch.GetByIssuedOrReceiver(svc.Context, int(matchId))
+
+	if err != nil {
+		fmt.Print(err)
+		return nil, errs.CatMatchErrOwnerNotFound
+	}
+
+	var cmRes []*catmatch.CatMatchResponse
+	for _, cm := range data {
+		cmRes = append(cmRes, catmatch.CatToCatResponse(*cm))
+	}
+
+	return cmRes, nil
+}
+

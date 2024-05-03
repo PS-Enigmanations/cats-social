@@ -123,6 +123,7 @@ func main() {
 
 	// Cat Match api endpoint
 	router.Post("/v1/cat/match", auth.ProtectedHandler(http.HandlerFunc(catMatchController.CatMatchCreate)))
+	router.Get("/v1/cat/match", auth.ProtectedHandler(http.HandlerFunc(catMatchController.CatMatchGet)))
 	router.Post("/v1/cat/match/approve", auth.ProtectedHandler(http.HandlerFunc(catMatchController.CatMatchApprove)))
 	router.Post("/v1/cat/match/reject", auth.ProtectedHandler(http.HandlerFunc(catMatchController.CatMatchReject)))
 	router.Del("/v1/cat/match/:id", auth.ProtectedHandler(http.HandlerFunc(catMatchController.CatMatchDestroy)))
