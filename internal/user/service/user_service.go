@@ -10,11 +10,10 @@ import (
 	"enigmanations/cats-social/pkg/bcrypt"
 	"enigmanations/cats-social/pkg/jwt"
 	"fmt"
-	"strings"
+	"net/mail"
 
 	"enigmanations/cats-social/pkg/database"
 
-	emailverifier "github.com/AfterShip/email-verifier"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
@@ -38,6 +37,11 @@ func NewUserService(ctx context.Context, pool *pgxpool.Pool, repo *UserDependenc
 	return &userService{Context: ctx, pool: pool, repo: repo}
 }
 
+func IsEmail(email string) bool {
+	emailAddress, err := mail.ParseAddress(email)
+	return err == nil && emailAddress.Address == email
+}
+
 func (svc *userService) validate(req *request.UserRegisterRequest) (*user.User, error) {
 	repo := svc.repo
 
@@ -46,24 +50,17 @@ func (svc *userService) validate(req *request.UserRegisterRequest) (*user.User, 
 	}
 
 	if req.Email != "" {
-		lowerCasedEmail := strings.ToLower(req.Email)
-		payload.Email = lowerCasedEmail
-
 		// Check email format
-		var verifier = emailverifier.NewVerifier()
-		ret, err := verifier.Verify(payload.Email)
-		if err != nil {
-			return nil, errs.UserErrEmailInvalidFormat
-		}
-		if !ret.Syntax.Valid {
+		if !IsEmail(req.Email) {
 			return nil, errs.UserErrEmailInvalidFormat
 		}
 
 		// Check existing user
-		userFound, _ := repo.User.GetByEmailIfExists(svc.Context, payload.Email)
+		userFound, _ := repo.User.GetByEmailIfExists(svc.Context, req.Email)
 		if userFound != nil {
 			return nil, errs.UserErrEmailExist
 		}
+		payload.Email = req.Email
 	}
 	if req.Password != "" {
 		hashedPassword, err := bcrypt.HashPassword(req.Password)

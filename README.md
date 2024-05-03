@@ -39,6 +39,15 @@ go mod download
 make dev
 ```
 
+**Running k6**:
+
+1. Ensure running `make dev` first
+2. Run script:
+
+```sh
+make k6
+```
+
 **Docs**
 
 1. Please install plugin `REST Client` at vscode
