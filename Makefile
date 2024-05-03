@@ -36,6 +36,10 @@ up-prod:
 k6:
 	cd scripts/k6 && BASE_URL=http://localhost:8080 make run
 
+## run k6 load testing
+k6-loadtest:
+	cd scripts/k6 && BASE_URL=http://localhost:8080 make runAllLoadTests
+
 ## run golang-migrate up
 migrateup:
 	migrate -database $(DATABASE_URL) -path db/migrations up

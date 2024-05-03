@@ -48,6 +48,12 @@ make dev
 make k6
 ```
 
+3. Or Run load test:
+
+```sh
+make k6-loadtest
+```
+
 **Docs**
 
 1. Please install plugin `REST Client` at vscode
