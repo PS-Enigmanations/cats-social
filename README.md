@@ -55,8 +55,8 @@ make k6
 
 **API**:
 
-- http://localhost:8080/v1/register
-- http://localhost:8080/v1/login
+- http://localhost:8080/v1/user/register
+- http://localhost:8080/v1/user/login
 - http://localhost:8080/v1/cat
 - http://localhost:8080/v1/cat/match
 - http://localhost:8080/v1/cat/match/approve
