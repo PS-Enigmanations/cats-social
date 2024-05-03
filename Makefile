@@ -40,6 +40,6 @@ k6:
 migrateup:
 	migrate -database $(DATABASE_URL) -path db/migrations up
 
-## run golang-migrate up
+## run golang-migrate down
 migratedown:
 	migrate -database $(DATABASE_URL) -path db/migrations down
