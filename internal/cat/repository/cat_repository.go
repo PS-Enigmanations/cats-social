@@ -3,21 +3,24 @@ package repository
 import (
 	"context"
 	"enigmanations/cats-social/internal/cat"
-	"enigmanations/cats-social/pkg/database"
+	"enigmanations/cats-social/internal/cat/request"
+	"errors"
 	"fmt"
+	"strconv"
+	"strings"
 
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
 type CatRepository interface {
-	GetAll(ctx context.Context) ([]*cat.Cat, error)
+	GetAllByParams(ctx context.Context, params *request.CatGetAllQueryParams) ([]*cat.Cat, error)
 	FindById(ctx context.Context, catId int) (*cat.Cat, error)
-	Save(ctx context.Context, model cat.Cat) (*cat.Cat, error)
-	Update(ctx context.Context, model cat.Cat) (*cat.Cat, error)
-	SaveImageUrls(ctx context.Context, catId int, urls []string) error
-	Delete(ctx context.Context, catId int) error
-	DeleteImageUrls(ctx context.Context, catId int) error
+	Save(ctx context.Context, tx pgx.Tx, model cat.Cat) (*cat.Cat, error)
+	Update(ctx context.Context, tx pgx.Tx, model cat.Cat) (*cat.Cat, error)
+	SaveImageUrls(ctx context.Context, tx pgx.Tx, catId int, urls []string) error
+	Delete(ctx context.Context, tx pgx.Tx, catId int) error
+	DeleteImageUrls(ctx context.Context, tx pgx.Tx, catId int) error
 }
 
 type Database struct {
@@ -30,20 +33,81 @@ func NewCatRepository(pool *pgxpool.Pool) CatRepository {
 	}
 }
 
-func (db *Database) GetAll(ctx context.Context) ([]*cat.Cat, error) {
-	const q = `
-	SELECT
-		c.id,
-		c.name,
-		c.race,
-		c.sex,
-		c.age_in_month,
-		c.description
-	FROM cats c`
+func (db *Database) GetAllByParams(ctx context.Context, params *request.CatGetAllQueryParams) ([]*cat.Cat, error) {
+	var (
+		args  []any
+		where []string
+	)
 
-	// execute query
-	rows, err := db.pool.Query(ctx, q)
+	sql := fmt.Sprintf(`
+		SELECT
+			c.id,
+			c.name,
+			c.race,
+			c.sex,
+			c.age_in_month,
+			c.description
+		FROM cats c`)
 
+	// Id
+	if params.Id != "" {
+		args = append(args, params.Id)
+		where = append(where, fmt.Sprintf(`"id" = $%d`, len(args)))
+	}
+	// Race
+	if params.Race != "" {
+		args = append(args, params.Race)
+		where = append(where, fmt.Sprintf(`"race" = $%d`, len(args)))
+	}
+	// Sex
+	if params.Sex != "" {
+		args = append(args, params.Sex)
+		where = append(where, fmt.Sprintf(`"sex" = $%d`, len(args)))
+	}
+	// HasMatched
+	if params.HasMatched != "" {
+		hasMethod, err := strconv.ParseBool(params.HasMatched)
+		if nil != err {
+			return nil, err
+		}
+
+		args = append(args, hasMethod)
+		where = append(where, fmt.Sprintf(`"has_matched" = $%d`, len(args)))
+	}
+	// AgeInMonth
+	if params.AgeInMonth != "" {
+		return nil, errors.New("Sorry, currently we didn't support this parameter yet!")
+	}
+	// Owned
+	if params.Owned != "" {
+		return nil, errors.New("Sorry, currently we didn't support this parameter yet!")
+	}
+	// Search
+	if params.Search != "" {
+		args = append(args, params.Search)
+		where = append(where, fmt.Sprintf(`"name" LIKE $%d`, len(args)))
+	}
+
+	// Merge where clauses
+	if len(where) > 0 {
+		w := " WHERE " + strings.Join(where, " AND ") // #nosec G202
+		sql += w
+	}
+
+	// Limit (default: 5)
+	if params.Limit != "" {
+		sql += fmt.Sprintf(` LIMIT %s`, params.Limit)
+	} else {
+		sql += fmt.Sprintf(` LIMIT %d`, 5)
+	}
+	// Offset (default: 0)
+	if params.Offset != "" {
+		sql += fmt.Sprintf(` OFFSET %s`, params.Offset)
+	} else {
+		sql += fmt.Sprintf(` OFFSET %d`, 0)
+	}
+
+	rows, err := db.pool.Query(ctx, sql, args...)
 	if err != nil {
 		return nil, err
 	}
@@ -105,125 +169,102 @@ func (db *Database) FindById(ctx context.Context, catId int) (*cat.Cat, error) {
 	return c, nil
 }
 
-func (db *Database) Save(ctx context.Context, model cat.Cat) (*cat.Cat, error) {
-	var result *cat.Cat
+func (db *Database) Save(ctx context.Context, tx pgx.Tx, model cat.Cat) (*cat.Cat, error) {
+	const sql = `INSERT into cats
+		("user_id", "name", "race", "sex", "age_in_month", "description")
+		VALUES ($1, $2, $3, $4, $5, $6)
+		RETURNING id, name, race, sex, age_in_month, description;`
 
-	if err := database.BeginTransaction(ctx, db.pool, func(tx pgx.Tx) error {
-		const q = `INSERT into cats
-			("user_id", "name", "race", "sex", "age_in_month", "description")
-			VALUES ($1, $2, $3, $4, $5, $6)
-			RETURNING id, name, race, sex, age_in_month, description;`
+	// execute query to insert new record. it takes 'cat' variable as its input
+	// the result will be placed in 'row' variable
+	row := tx.QueryRow(
+		ctx,
+		sql,
+		model.UserId,
+		model.Name,
+		model.Race,
+		model.Sex,
+		model.AgeInMonth,
+		model.Description,
+	)
 
-		// execute query to insert new record. it takes 'cat' variable as its input
-		// the result will be placed in 'row' variable
-		row := db.pool.QueryRow(
-			ctx, q,
-			model.UserId,
-			model.Name,
-			model.Race,
-			model.Sex,
-			model.AgeInMonth,
-			model.Description,
-		)
+	// create 'c' variable as 'Cat' type to contain scanned data value from 'row' variable
+	c := new(cat.Cat)
 
-		// create 'c' variable as 'Cat' type to contain scanned data value from 'row' variable
-		c := new(cat.Cat)
+	// scan 'row' variable and place the value to 'c' variable as well as check for error
+	err := row.Scan(
+		&c.Id,
+		&c.Name,
+		&c.Race,
+		&c.Sex,
+		&c.AgeInMonth,
+		&c.Description,
+	)
 
-		// scan 'row' variable and place the value to 'c' variable as well as check for error
-		err := row.Scan(
-			&c.Id,
-			&c.Name,
-			&c.Race,
-			&c.Sex,
-			&c.AgeInMonth,
-			&c.Description,
-		)
-
-		// return nil and error if scan operation is fail/ error found
-		if err != nil {
-			return fmt.Errorf("Save %w", err)
-		}
-
-		result = c
-		return nil
-	}); err != nil {
-		return nil, fmt.Errorf("Save transaction %w", err)
+	// return nil and error if scan operation is fail/ error found
+	if err != nil {
+		return nil, fmt.Errorf("Save %w", err)
 	}
 
-	// return 'c' and nil if no error found
-	return result, nil
+	return c, nil
 }
 
-func (db *Database) Update(ctx context.Context, model cat.Cat) (*cat.Cat, error) {
-	var result *cat.Cat
+func (db *Database) Update(ctx context.Context, tx pgx.Tx, model cat.Cat) (*cat.Cat, error) {
+	const sql = `UPDATE cats
+		SET name = $2,
+			race = $3,
+			sex = $4,
+			age_in_month = $5,
+			description = $6
+		WHERE id = $1
+		RETURNING id, name, race, sex, age_in_month, description;`
 
-	if err := database.BeginTransaction(ctx, db.pool, func(tx pgx.Tx) error {
-		const q = `UPDATE cats
-			SET name = $2,
-				race = $3,
-				sex = $4,
-				age_in_month = $5,
-				description = $6
-			WHERE id = $1
-			RETURNING id, name, race, sex, age_in_month, description;`
+	row := tx.QueryRow(
+		ctx,
+		sql,
+		model.Id,
+		model.Name,
+		model.Race,
+		model.Sex,
+		model.AgeInMonth,
+		model.Description,
+	)
 
-		row := db.pool.QueryRow(
-			ctx, q,
-			model.Id,
-			model.Name,
-			model.Race,
-			model.Sex,
-			model.AgeInMonth,
-			model.Description,
-		)
-
-		c := new(cat.Cat)
-		err := row.Scan(
-			&c.Id,
-			&c.Name,
-			&c.Race,
-			&c.Sex,
-			&c.AgeInMonth,
-			&c.Description,
-		)
-		if err != nil {
-			return fmt.Errorf("Update %w", err)
-		}
-
-		result = c
-		return nil
-	}); err != nil {
-		return nil, fmt.Errorf("Update transaction %w", err)
+	c := new(cat.Cat)
+	err := row.Scan(
+		&c.Id,
+		&c.Name,
+		&c.Race,
+		&c.Sex,
+		&c.AgeInMonth,
+		&c.Description,
+	)
+	if err != nil {
+		return nil, fmt.Errorf("Update %w", err)
 	}
 
-	return result, nil
+	return c, nil
 }
 
-func (db *Database) SaveImageUrls(ctx context.Context, catId int, urls []string) error {
-	if err := database.BeginTransaction(ctx, db.pool, func(tx pgx.Tx) error {
-		const q = `INSERT into cat_images
-			("cat_id", "url")
-			VALUES ($1, $2);`
+func (db *Database) SaveImageUrls(ctx context.Context, tx pgx.Tx, catId int, urls []string) error {
+	const sql = `INSERT into cat_images
+		("cat_id", "url")
+		VALUES ($1, $2);`
 
-		for _, url := range urls {
-			_, err := tx.Exec(ctx, q, catId, url)
-			if err != nil {
-				return fmt.Errorf("SaveImageUrls %w", err)
-			}
+	for _, url := range urls {
+		_, err := tx.Exec(ctx, sql, catId, url)
+		if err != nil {
+			return fmt.Errorf("SaveImageUrls %w", err)
 		}
-
-		return nil
-	}); err != nil {
-		return fmt.Errorf("SaveImageUrls transaction %w", err)
 	}
 
 	return nil
 }
 
-func (db *Database) Delete(ctx context.Context, catId int) error {
-	const q = `UPDATE cats SET deleted_at = NOW() WHERE id = $1`
+func (db *Database) Delete(ctx context.Context, tx pgx.Tx, catId int) error {
+	const sql = `UPDATE cats SET deleted_at = NOW() WHERE id = $1`
 
-	_, err := db.pool.Exec(ctx, q, catId)
+	_, err := tx.Exec(ctx, sql, catId)
 	if err != nil {
 		return fmt.Errorf("Delete %w", err)
 	}
@@ -231,10 +272,10 @@ func (db *Database) Delete(ctx context.Context, catId int) error {
 	return nil
 }
 
-func (db *Database) DeleteImageUrls(ctx context.Context, catId int) error {
-	const q = `DELETE FROM cat_images WHERE cat_id = $1`
+func (db *Database) DeleteImageUrls(ctx context.Context, tx pgx.Tx, catId int) error {
+	const sql = `DELETE FROM cat_images WHERE cat_id = $1`
 
-	_, err := db.pool.Exec(ctx, q, catId)
+	_, err := tx.Exec(ctx, sql, catId)
 	if err != nil {
 		return fmt.Errorf("Delete Image Urls %w", err)
 	}
