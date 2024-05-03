@@ -104,7 +104,7 @@ func main() {
 	catController := catControllerInternal.NewCatController(catService)
 
 	// Cats api endpoint
-	router.Get("/v1/cat", auth.ProtectedHandler(http.HandlerFunc(catController.CatGetController)))
+	router.Get("/v1/cat", auth.ProtectedHandler(http.HandlerFunc(catController.CatGetAllController)))
 	router.Put("/v1/cat/:id", auth.ProtectedHandler(http.HandlerFunc(catController.CatUpdateController)))
 	router.Post("/v1/cat", auth.ProtectedHandler(http.HandlerFunc(catController.CatCreateController)))
 	router.Del("/v1/cat/:id", auth.ProtectedHandler(http.HandlerFunc(catController.CatDeleteController)))

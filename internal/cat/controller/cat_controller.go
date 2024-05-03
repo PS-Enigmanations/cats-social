@@ -12,15 +12,22 @@ import (
 	"github.com/go-playground/validator"
 )
 
+type CatMatchController interface {
+	CatGetAllController(w http.ResponseWriter, r *http.Request)
+	CatCreateController(w http.ResponseWriter, r *http.Request)
+	CatUpdateController(w http.ResponseWriter, r *http.Request)
+	CatDeleteController(w http.ResponseWriter, r *http.Request)
+}
+
 type catController struct {
 	Service service.CatService
 }
 
-func NewCatController(svc service.CatService) catController {
-	return catController{Service: svc}
+func NewCatController(svc service.CatService) CatMatchController {
+	return &catController{Service: svc}
 }
 
-func (c *catController) CatGetController(w http.ResponseWriter, r *http.Request) {
+func (c *catController) CatGetAllController(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusOK)
 	w.Header().Add("Content-Type", "application/json")
 
