@@ -26,7 +26,7 @@ func NewCatService(db repository.CatRepository, ctx context.Context) CatService 
 }
 
 func (service *catService) GetAllByParams(p *request.CatGetAllQueryParams) (*response.CatGetAllResponse, error) {
-	cats, err := service.db.GetAllByParams(service.Context)
+	cats, err := service.db.GetAllByParams(service.Context, p)
 
 	if err != nil {
 		return nil, err

@@ -3,15 +3,19 @@ package repository
 import (
 	"context"
 	"enigmanations/cats-social/internal/cat"
+	"enigmanations/cats-social/internal/cat/request"
 	"enigmanations/cats-social/pkg/database"
+	"errors"
 	"fmt"
+	"strconv"
+	"strings"
 
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
 type CatRepository interface {
-	GetAllByParams(ctx context.Context) ([]*cat.Cat, error)
+	GetAllByParams(ctx context.Context, params *request.CatGetAllQueryParams) ([]*cat.Cat, error)
 	FindById(ctx context.Context, catId int) (*cat.Cat, error)
 	Save(ctx context.Context, model cat.Cat) (*cat.Cat, error)
 	Update(ctx context.Context, model cat.Cat) (*cat.Cat, error)
@@ -30,20 +34,81 @@ func NewCatRepository(pool *pgxpool.Pool) CatRepository {
 	}
 }
 
-func (db *Database) GetAllByParams(ctx context.Context) ([]*cat.Cat, error) {
-	const q = `
-	SELECT
-		c.id,
-		c.name,
-		c.race,
-		c.sex,
-		c.age_in_month,
-		c.description
-	FROM cats c`
+func (db *Database) GetAllByParams(ctx context.Context, params *request.CatGetAllQueryParams) ([]*cat.Cat, error) {
+	var (
+		args  []any
+		where []string
+	)
 
-	// execute query
-	rows, err := db.pool.Query(ctx, q)
+	sql := fmt.Sprintf(`
+		SELECT
+			c.id,
+			c.name,
+			c.race,
+			c.sex,
+			c.age_in_month,
+			c.description
+		FROM cats c`)
 
+	// Id
+	if params.Id != "" {
+		args = append(args, params.Id)
+		where = append(where, fmt.Sprintf(`"id" = $%d`, len(args)))
+	}
+	// Race
+	if params.Race != "" {
+		args = append(args, params.Race)
+		where = append(where, fmt.Sprintf(`"race" = $%d`, len(args)))
+	}
+	// Sex
+	if params.Sex != "" {
+		args = append(args, params.Sex)
+		where = append(where, fmt.Sprintf(`"sex" = $%d`, len(args)))
+	}
+	// HasMatched
+	if params.HasMatched != "" {
+		hasMethod, err := strconv.ParseBool(params.HasMatched)
+		if nil != err {
+			return nil, err
+		}
+
+		args = append(args, hasMethod)
+		where = append(where, fmt.Sprintf(`"has_matched" = $%d`, len(args)))
+	}
+	// AgeInMonth
+	if params.AgeInMonth != "" {
+		return nil, errors.New("Sorry, currently we didn't support this parameter yet!")
+	}
+	// Owned
+	if params.Owned != "" {
+		return nil, errors.New("Sorry, currently we didn't support this parameter yet!")
+	}
+	// Search
+	if params.Search != "" {
+		args = append(args, params.Search)
+		where = append(where, fmt.Sprintf(`"name" LIKE $%d`, len(args)))
+	}
+
+	// Merge where clauses
+	if len(where) > 0 {
+		w := " WHERE " + strings.Join(where, " AND ") // #nosec G202
+		sql += w
+	}
+
+	// Limit (default: 5)
+	if params.Limit != "" {
+		sql += fmt.Sprintf(` LIMIT %s`, params.Limit)
+	} else {
+		sql += fmt.Sprintf(` LIMIT %d`, 5)
+	}
+	// Offset (default: 0)
+	if params.Offset != "" {
+		sql += fmt.Sprintf(` OFFSET %s`, params.Offset)
+	} else {
+		sql += fmt.Sprintf(` OFFSET %d`, 0)
+	}
+
+	rows, err := db.pool.Query(ctx, sql, args...)
 	if err != nil {
 		return nil, err
 	}
