@@ -16,7 +16,7 @@ import (
 )
 
 type CatService interface {
-	GetAllByParams(p *request.CatGetAllQueryParams) (*response.CatGetAllResponse, error)
+	GetAllByParams(p *request.CatGetAllQueryParams, actorId int) (*response.CatGetAllResponse, error)
 	Create(payload *request.CatCreateRequest, actorId int) (*response.CatCreateResponse, error)
 }
 
@@ -31,8 +31,8 @@ func NewCatService(ctx context.Context, pool *pgxpool.Pool, db repository.CatRep
 	return &catService{db: db, pool: pool, Context: ctx}
 }
 
-func (svc *catService) GetAllByParams(p *request.CatGetAllQueryParams) (*response.CatGetAllResponse, error) {
-	cats, err := svc.db.GetAllByParams(svc.Context, p)
+func (svc *catService) GetAllByParams(p *request.CatGetAllQueryParams, actorId int) (*response.CatGetAllResponse, error) {
+	cats, err := svc.db.GetAllByParams(svc.Context, p, actorId)
 
 	if err != nil {
 		return nil, err

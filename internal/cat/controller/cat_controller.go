@@ -35,8 +35,8 @@ func (c *catController) CatGetAllController(w http.ResponseWriter, r *http.Reque
 	if err != nil {
 		log.Fatalf("Error happened in parse query. Err: %s", err)
 	}
-
-	cats, err := c.Service.GetAllByParams(queryParams)
+	currUser := user.GetCurrentUser(r.Context())
+	cats, err := c.Service.GetAllByParams(queryParams, currUser.Uid)
 	jsonResp, err := json.Marshal(cats)
 	if err != nil {
 		log.Fatalf("Error happened in JSON marshal. Err: %s", err)

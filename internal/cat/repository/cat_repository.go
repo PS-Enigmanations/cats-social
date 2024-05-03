@@ -14,7 +14,7 @@ import (
 )
 
 type CatRepository interface {
-	GetAllByParams(ctx context.Context, params *request.CatGetAllQueryParams) ([]*cat.Cat, error)
+	GetAllByParams(ctx context.Context, params *request.CatGetAllQueryParams, actorId int) ([]*cat.Cat, error)
 	FindById(ctx context.Context, catId int) (*cat.Cat, error)
 	Save(ctx context.Context, tx pgx.Tx, model cat.Cat) (*cat.Cat, error)
 	Update(ctx context.Context, tx pgx.Tx, model cat.Cat) (*cat.Cat, error)
@@ -33,7 +33,7 @@ func NewCatRepository(pool *pgxpool.Pool) CatRepository {
 	}
 }
 
-func (db *Database) GetAllByParams(ctx context.Context, params *request.CatGetAllQueryParams) ([]*cat.Cat, error) {
+func (db *Database) GetAllByParams(ctx context.Context, params *request.CatGetAllQueryParams, actorId int) ([]*cat.Cat, error) {
 	var (
 		args  []any
 		where []string
@@ -80,7 +80,8 @@ func (db *Database) GetAllByParams(ctx context.Context, params *request.CatGetAl
 	}
 	// Owned
 	if params.Owned != "" {
-		return nil, errors.New("Sorry, currently we didn't support this parameter yet!")
+		args = append(args, actorId)
+		where = append(where, fmt.Sprintf(`"user_id" = $%d`, len(args)))
 	}
 	// Search
 	if params.Search != "" {
