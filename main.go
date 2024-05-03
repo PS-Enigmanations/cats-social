@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	//"enigmanations/cats-social/middleware"
+	"enigmanations/cats-social/middleware"
 	"enigmanations/cats-social/pkg/database"
 	"fmt"
 	"log"
@@ -70,7 +71,7 @@ func main() {
 	router := httprouter.New()
 
 	// Prepare middleware
-	//auth := middleware.NewAuthMiddleware(pgPool, ctx)
+	auth := middleware.NewAuthMiddleware(pgPool, ctx)
 
 	// Users
 	userRepository := userRepositoryInternal.NewUserRepository(pgPool)
@@ -102,9 +103,9 @@ func main() {
 	catController := catControllerInternal.NewCatController(catService)
 
 	// Cats api endpoint
-	router.GET("/v1/cats", catController.CatGetController)
-	router.POST("/v1/cats", catController.CatCreateController)
-	router.DELETE("/v1/cats/:id", catController.CatDeleteController)
+	router.GET("/v1/cats", auth.ProtectedHandler(catController.CatGetController))
+	router.POST("/v1/cats", auth.ProtectedHandler(catController.CatCreateController))
+	router.DELETE("/v1/cats/:id", auth.ProtectedHandler(catController.CatDeleteController))
 
 	// Cat Match
 	catMatchRepository := catMatchRepositoryInternal.NewCatMatchRepository(pgPool)
