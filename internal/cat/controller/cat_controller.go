@@ -78,7 +78,13 @@ func (c *catController) CatUpdateController(w http.ResponseWriter, r *http.Reque
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
-	// send data to service layer to further process (update record)
+
+	_, err = c.Service.FindById(reqBody.Id)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusNotFound)
+		return
+	}
+
 	cat, err := c.Service.Update(&reqBody, reqBody.Id)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -100,6 +106,17 @@ func (c *catController) CatDeleteController(w http.ResponseWriter, r *http.Reque
 	// get cat id from request params
 	catId := p.ByName("id")
 	id, err := strconv.Atoi(catId)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	_, err = c.Service.FindById(id)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusNotFound)
+		return
+	}
+
 	err = c.Service.Delete(id)
 	w.Header().Add("Content-Type", "application/json")
 	if err != nil {
