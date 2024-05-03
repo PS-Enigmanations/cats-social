@@ -2,7 +2,7 @@ package main
 
 import (
 	"context"
-	//"enigmanations/cats-social/middleware"
+	"enigmanations/cats-social/middleware"
 	"enigmanations/cats-social/pkg/database"
 	"fmt"
 	"log"
@@ -70,7 +70,7 @@ func main() {
 	router := httprouter.New()
 
 	// Prepare middleware
-	//auth := middleware.NewAuthMiddleware(pgPool, ctx)
+	auth := middleware.NewAuthMiddleware(pgPool, ctx)
 
 	// Users
 	userRepository := userRepositoryInternal.NewUserRepository(pgPool)
