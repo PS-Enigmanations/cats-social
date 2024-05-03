@@ -11,7 +11,7 @@ import (
 )
 
 type CatRepository interface {
-	GetAll(ctx context.Context) ([]*cat.Cat, error)
+	GetAllByParams(ctx context.Context) ([]*cat.Cat, error)
 	FindById(ctx context.Context, catId int) (*cat.Cat, error)
 	Save(ctx context.Context, model cat.Cat) (*cat.Cat, error)
 	Update(ctx context.Context, model cat.Cat) (*cat.Cat, error)
@@ -30,7 +30,7 @@ func NewCatRepository(pool *pgxpool.Pool) CatRepository {
 	}
 }
 
-func (db *Database) GetAll(ctx context.Context) ([]*cat.Cat, error) {
+func (db *Database) GetAllByParams(ctx context.Context) ([]*cat.Cat, error) {
 	const q = `
 	SELECT
 		c.id,

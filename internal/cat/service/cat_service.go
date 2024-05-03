@@ -4,12 +4,12 @@ import (
 	"context"
 
 	"enigmanations/cats-social/internal/cat/repository"
+	"enigmanations/cats-social/internal/cat/request"
 	"enigmanations/cats-social/internal/cat/response"
 )
 
 type CatService interface {
-	// p *request.CatGetAllRequestParams
-	GetAllByParams() (*response.CatGetAllResponse, error)
+	GetAllByParams(p *request.CatGetAllQueryParams) (*response.CatGetAllResponse, error)
 	// Create(payload *request.CatCreateRequest) (*response.CatCreateResponse, error)
 	//Update(payload *request.CatUpdateRequest, catId int) error
 	// Delete(catId int) error
@@ -25,8 +25,8 @@ func NewCatService(db repository.CatRepository, ctx context.Context) CatService 
 	return &catService{db: db, Context: ctx}
 }
 
-func (service *catService) GetAllByParams() (*response.CatGetAllResponse, error) {
-	cats, err := service.db.GetAll(service.Context)
+func (service *catService) GetAllByParams(p *request.CatGetAllQueryParams) (*response.CatGetAllResponse, error) {
+	cats, err := service.db.GetAllByParams(service.Context)
 
 	if err != nil {
 		return nil, err

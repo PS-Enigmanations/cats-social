@@ -1,12 +1,12 @@
 package request
 
-type CatGetAllRequestParams struct {
-	Id         string `json:"id"`
-	Limit      string `json:"limit" default:"5"`
-	Offset     string `json:"offset" default:"0"`
-	Race       string `json:"race" validate:"oneof=Persian MaineCoon Siamese Ragdoll Bengal Sphynx BritishShorthair Abyssinian ScottishFold Birman"`
-	Sex        string `json:"sex" validate:"oneof=male female"`
-	HasMatched bool   `json:"hasMatched"`
+type CatGetAllQueryParams struct {
+	Id         string `form:"id"`
+	Limit      string `form:"limit" default:"5"`
+	Offset     string `form:"offset" default:"0"`
+	Race       string `form:"race" validate:"oneof=Persian MaineCoon Siamese Ragdoll Bengal Sphynx BritishShorthair Abyssinian ScottishFold Birman"`
+	Sex        string `form:"sex" validate:"oneof=male female"`
+	HasMatched bool   `form:"hasMatched"`
 	// ==
 	// Age in month example:
 	// '=>4': searches data that have more than 4 months

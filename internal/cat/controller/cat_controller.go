@@ -2,7 +2,9 @@ package controller
 
 import (
 	"encoding/json"
+	"enigmanations/cats-social/internal/cat/request"
 	"enigmanations/cats-social/internal/cat/service"
+	"enigmanations/cats-social/util"
 	"log"
 	"net/http"
 )
@@ -26,7 +28,12 @@ func (c *catController) CatGetAllController(w http.ResponseWriter, r *http.Reque
 	w.WriteHeader(http.StatusOK)
 	w.Header().Add("Content-Type", "application/json")
 
-	cats, err := c.Service.GetAllByParams()
+	queryParams, err := util.ParseQuery[request.CatGetAllQueryParams](r)
+	if err != nil {
+		log.Fatalf("Error happened in parse query. Err: %s", err)
+	}
+
+	cats, err := c.Service.GetAllByParams(queryParams)
 	jsonResp, err := json.Marshal(cats)
 	if err != nil {
 		log.Fatalf("Error happened in JSON marshal. Err: %s", err)
