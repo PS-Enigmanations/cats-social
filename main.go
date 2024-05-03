@@ -104,6 +104,7 @@ func main() {
 	// Cats api endpoint
 	router.GET("/v1/cats", catController.CatGetController)
 	router.POST("/v1/cats", catController.CatCreateController)
+	router.DELETE("/v1/cats/:id", catController.CatDeleteController)
 
 	// Cat Match
 	catMatchRepository := catMatchRepositoryInternal.NewCatMatchRepository(pgPool)

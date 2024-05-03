@@ -15,11 +15,8 @@ type CatRepository interface {
 	FindById(ctx context.Context, catId int) (*cat.Cat, error)
 	Save(ctx context.Context, model cat.Cat) (*cat.Cat, error)
 	SaveImageUrls(ctx context.Context, catId int, urls []string) error
-<<<<<<< HEAD
 	Delete(ctx context.Context, catId int) error
 	DeleteImageUrls(ctx context.Context, catId int) error
-=======
->>>>>>> 36c5a90 (store cat image urls)
 }
 
 type Database struct {
@@ -176,7 +173,6 @@ func (db *Database) SaveImageUrls(ctx context.Context, catId int, urls []string)
 
 	return nil
 }
-<<<<<<< HEAD
 
 func (db *Database) Delete(ctx context.Context, catId int) error {
 	const q = `DELETE FROM cats WHERE id = $1`
@@ -199,5 +195,3 @@ func (db *Database) DeleteImageUrls(ctx context.Context, catId int) error {
 
 	return nil
 }
-=======
->>>>>>> 36c5a90 (store cat image urls)
