@@ -49,7 +49,7 @@ func ToCatShows(c []*cat.Cat) CatShows {
 // Create response
 type CatCreateShow struct {
 	Id        int       `json:"id"`
-	CreatedAt time.Time `json:"created_at"`
+	CreatedAt time.Time `json:"createdAt"`
 }
 
 type CatCreateResponse struct {
