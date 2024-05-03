@@ -11,6 +11,7 @@ type CatService interface {
 	GetAll() ([]*CatResponse, error)
 	FindById(catId int) (*CatResponse, error)
 	Create(payload *cat.CatCreateRequest) (*CatResponse, error)
+	Update(payload *cat.CatUpdateRequest, catId int) (*CatResponse, error)
 	Delete(catId int) error
 	DeleteImageUrls(catId int) error
 }
@@ -71,6 +72,45 @@ func (service *catService) Create(payload *cat.CatCreateRequest) (*CatResponse, 
 	return CatToCatResponse(*cat), nil
 }
 
+func (service *catService) Update(payload *cat.CatUpdateRequest, catId int) (*CatResponse, error) {
+	const USER_ID = 2
+
+	model := cat.Cat{
+		UserId:      USER_ID,
+		Name:        payload.Name,
+		Race:        cat.Race(payload.Race),
+		Sex:         cat.Sex(payload.Sex),
+		AgeInMonth:  payload.AgeInMonth,
+		Description: payload.Description,
+	}
+
+	cat, err := service.db.FindById(service.Context, catId)
+
+	if cat == nil {
+		return nil, err
+	}
+
+	cat, err = service.db.Update(service.Context, model)
+
+	if err != nil {
+		return nil, err
+	}
+
+	err = service.db.DeleteImageUrls(service.Context, cat.Id)
+	if err != nil {
+		return nil, err
+	}
+
+	err = service.db.SaveImageUrls(service.Context, cat.Id, payload.ImageUrls)
+	if err != nil {
+		return nil, err
+	}
+
+	cat.ImageUrls = payload.ImageUrls
+
+	return CatToCatResponse(*cat), nil
+}
+
 func (service *catService) FindById(catId int) (*CatResponse, error) {
 	cat, err := service.db.FindById(service.Context, catId)
 	if err != nil {
@@ -86,10 +126,6 @@ func (service *catService) Delete(catId int) error {
 		return err
 	}
 
-	err = service.db.DeleteImageUrls(service.Context, catId)
-	if err != nil {
-		return err
-	}
 	err = service.db.Delete(service.Context, catId)
 	if err != nil {
 		return err

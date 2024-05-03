@@ -65,6 +65,37 @@ func (c *catController) CatCreateController(w http.ResponseWriter, r *http.Reque
 	return
 }
 
+func (c *catController) CatUpdateController(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
+	var reqBody cat.CatUpdateRequest
+	if err := json.NewDecoder(r.Body).Decode(&reqBody); err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	validate := validator.New()
+	err := validate.Struct(reqBody)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+	// send data to service layer to further process (update record)
+	cat, err := c.Service.Update(&reqBody, reqBody.Id)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	w.WriteHeader(http.StatusOK)
+	w.Header().Add("Content-Type", "application/json")
+
+	jsonResp, err := json.Marshal(cat)
+	if err != nil {
+		log.Fatalf("Error happened in JSON marshal. Err: %s", err)
+	}
+	w.Write(jsonResp)
+	return
+}
+
 func (c *catController) CatDeleteController(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
 	// get cat id from request params
 	catId := p.ByName("id")
