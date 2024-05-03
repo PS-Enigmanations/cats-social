@@ -77,6 +77,7 @@ func (service *catService) Update(payload *cat.CatUpdateRequest, catId int) (*Ca
 
 	model := cat.Cat{
 		UserId:      USER_ID,
+		Id:          catId,
 		Name:        payload.Name,
 		Race:        cat.Race(payload.Race),
 		Sex:         cat.Sex(payload.Sex),

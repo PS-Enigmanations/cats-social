@@ -159,22 +159,22 @@ func (db *Database) Update(ctx context.Context, model cat.Cat) (*cat.Cat, error)
 
 	if err := database.BeginTransaction(ctx, db.pool, func(tx pgx.Tx) error {
 		const q = `UPDATE cats
-			SET name = $1,
-				race = $2,
-				sex = $3,
-				age_in_month = $4,
-				description = $5
-			WHERE id = $6
+			SET name = $2,
+				race = $3,
+				sex = $4,
+				age_in_month = $5,
+				description = $6
+			WHERE id = $1
 			RETURNING id, name, race, sex, age_in_month, description;`
 
 		row := db.pool.QueryRow(
 			ctx, q,
+			model.Id,
 			model.Name,
 			model.Race,
 			model.Sex,
 			model.AgeInMonth,
 			model.Description,
-			model.Id,
 		)
 
 		c := new(cat.Cat)
