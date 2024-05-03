@@ -122,6 +122,8 @@ func main() {
 
 	// Cat Match api endpoint
 	router.POST("/v1/cat/match", auth.ProtectedHandler(catMatchController.CatMatchCreate))
+	router.POST("/v1/cat/match/approve", auth.ProtectedHandler(catMatchController.CatMatchApprove))
+	router.POST("/v1/cat/match/reject", auth.ProtectedHandler(catMatchController.CatMatchReject))
 	router.DELETE("/v1/cat/match/:id", auth.ProtectedHandler(catMatchController.CatMatchDestroy))
 
 	// Run the server

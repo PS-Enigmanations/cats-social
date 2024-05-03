@@ -17,6 +17,8 @@ import (
 
 type CatMatchService interface {
 	Create(req *request.CatMatchRequest, actorId int64) error
+	Approve(matchId int) error
+	Reject(matchId int) error
 	Destroy(id int64) error
 }
 
@@ -144,5 +146,41 @@ func (svc *catMatchService) Destroy(id int64) error {
 		return fmt.Errorf("transaction %w", err)
 	}
 
+	return nil
+}
+
+func (svc *catMatchService) Approve(matchId int) error {
+	repo := svc.repo
+
+	if err := database.BeginTransaction(svc.Context, svc.pool, func(tx pgx.Tx) error {
+		// Approve cat matches
+		err := repo.CatMatch.UpdateCatMatchStatus(svc.Context, matchId, "success", tx)
+		if err != nil {
+			return err
+		}
+
+		return nil
+	}); err != nil {
+		return fmt.Errorf("transaction %w", err)
+	}
+	
+	return nil
+}
+
+func (svc *catMatchService) Reject(matchId int) error {
+	repo := svc.repo
+
+	if err := database.BeginTransaction(svc.Context, svc.pool, func(tx pgx.Tx) error {
+		// Reject cat matches
+		err := repo.CatMatch.UpdateCatMatchStatus(svc.Context, matchId, "reject", tx)
+		if err != nil {
+			return err
+		}
+
+		return nil
+	}); err != nil {
+		return fmt.Errorf("transaction %w", err)
+	}
+	
 	return nil
 }
