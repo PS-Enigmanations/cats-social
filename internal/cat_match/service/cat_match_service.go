@@ -111,18 +111,18 @@ func (svc *catMatchService) Create(req *request.CatMatchRequest, actorId int64) 
 		}
 
 		// Update cat already match if cat matches successfully created
-		err = repo.CatMatch.UpdateCatAlreadyMatches(
-			svc.Context,
-			[]int{
-				int(req.MatchCatId),
-				int(req.UserCatId),
-			},
-			true,
-			tx,
-		)
-		if err != nil {
-			return err
-		}
+		// err = repo.CatMatch.UpdateCatAlreadyMatches(
+		// 	svc.Context,
+		// 	[]int{
+		// 		int(req.MatchCatId),
+		// 		int(req.UserCatId),
+		// 	},
+		// 	true,
+		// 	tx,
+		// )
+		// if err != nil {
+		// 	return err
+		// }
 
 		return nil
 	}); err != nil {
