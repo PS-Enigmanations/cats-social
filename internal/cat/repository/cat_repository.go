@@ -4,7 +4,6 @@ import (
 	"context"
 	"enigmanations/cats-social/internal/cat"
 	"enigmanations/cats-social/internal/cat/request"
-	"enigmanations/cats-social/util"
 	"fmt"
 	"strconv"
 	"strings"
@@ -81,12 +80,18 @@ func (db *Database) GetAllByParams(ctx context.Context, params *request.CatGetAl
 	// AgeInMonth
 	if params.AgeInMonth != "" {
 		// Parse the input value
-		queryOperator, err := util.ParseQueryOperator(params.AgeInMonth)
-		if err != nil {
-			return nil, fmt.Errorf("Error when parse query operator %w", err)
+		ageOperator := ""
+		if strings.Contains(params.AgeInMonth, ">") {
+			ageOperator = ">="
+		} else if strings.Contains(params.AgeInMonth, "<") {
+			ageOperator = "<="
+		} else {
+			ageOperator = "="
 		}
-
-		where = append(where, fmt.Sprintf(`"age_in_month" %s`, queryOperator))
+		ageValue := strings.ReplaceAll(params.AgeInMonth, ">", "")
+		ageValue = strings.ReplaceAll(ageValue, "<", "")
+		args = append(args, ageValue)
+		where = append(where, fmt.Sprintf(`"age_in_month" %s $%d`, ageOperator, len(args)))
 	}
 	// Owned
 	if params.Owned != "" {
