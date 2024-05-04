@@ -105,7 +105,7 @@ func (db *Database) GetAllByParams(ctx context.Context, params *request.CatGetAl
 
 	// Merge where clauses
 	if len(where) > 0 {
-		w := " WHERE " + strings.Join(where, " AND ") + "AND deleted_at IS NULL" // #nosec G202
+		w := " WHERE " + strings.Join(where, " AND ") + " AND deleted_at IS NULL" // #nosec G202
 		sql += w
 	} else {
 		w := " WHERE deleted_at IS NULL"
