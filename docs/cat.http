@@ -1,0 +1,51 @@
+@baseURL = http://localhost:8080
+@origin = localhost:8080
+@accessToken = eyJhb
+
+### @name create cat
+POST {{baseURL}}/v1/cat HTTP/1.1
+Content-Type: application/json
+Origin: {{origin}}
+Authorization: Bearer {{accessToken}}
+
+{
+	"name": "Benjamin",
+	"race": "Persian",
+	"sex": "male",
+	"ageInMonth": 2,
+	"description": "Here's Description",
+	"imageUrls": ["https://go.dev/images/gophers/ladder.svg"]
+}
+
+@baseURL = http://localhost:8080
+@origin = localhost:8080
+@accessToken = eyJhb
+
+### @name get cats
+GET {{baseURL}}/v1/cat HTTP/1.1
+Content-Type: application/json
+Origin: {{origin}}
+Authorization: Bearer {{accessToken}}
+
+### @name get cats with query strings
+GET {{baseURL}}/v1/cat?id=1&limit=2&offset=3&hasMatched=true&ageInMonth=%3D%3E18&search=Fluffy HTTP/1.1
+Content-Type: application/json
+Origin: {{origin}}
+Authorization: Bearer {{accessToken}}
+
+### @name update cat
+PATCH {{baseURL}}/v1/cat/5 HTTP/1.1
+Content-Type: application/json
+Origin: {{origin}}
+Authorization: Bearer {{accessToken}}
+
+{
+	"name": "Benjamin",
+	"race": "Persian",
+}
+
+### @name delete cat
+DELETE {{baseURL}}/v1/cat/5 HTTP/1.1
+Content-Type: application/json
+Origin: {{origin}}
+Authorization: Bearer {{accessToken}}
