@@ -63,7 +63,7 @@ make k6-loadtest
 
 - http://localhost:8080/v1/user/register (`POST`)
 - http://localhost:8080/v1/user/login (`POST`)
-- http://localhost:8080/v1/cat (`GET`, `POST`)
-- http://localhost:8080/v1/cat/match (`POST`)
-- http://localhost:8080/v1/cat/match/approve
-- http://localhost:8080/v1/cat/match/reject
+- http://localhost:8080/v1/cat (`GET`, `POST`, `PUT`, `DELETE`)
+- http://localhost:8080/v1/cat/match (`GET`, `POST`)
+- http://localhost:8080/v1/cat/match/approve (`POST`)
+- http://localhost:8080/v1/cat/match/reject (`POST`)
