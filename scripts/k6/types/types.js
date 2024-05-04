@@ -13,7 +13,8 @@
  * @property {boolean} VERBOSE - Determines if verbose logging is enabled.
  * @property {boolean} DEBUG_ALL - Determines if debug mode is enabled for all cases.
  * @property {boolean} POSITIVE_CASE - Determines if only positive test cases should be executed.
- * @property {boolean} SKIP_PREP_DATA - Determines if data preparation should be executed.
+ * @property {boolean} GACHA - Determines if data preparation should be executed.
+ * @property {boolean} LOAD_TEST 
  */
 /**
  * @typedef {Object} User

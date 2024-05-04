@@ -180,37 +180,60 @@ export function TestGetManageCat(config, user, cat, tags = {}) {
 
 
   const middleAgeInMonth = generateRandomNumber(3, 120080);
-  if (!config.SKIP_PREP_DATA) {
-    const positivePayload = (ageInMonth) => ({
+  if (!config.GACHA) {
+    const positivePayload = (ageInMonth, gender) => ({
       name: generateUniqueName(),
       race: generateRandomCatBreed(),
       ageInMonth: ageInMonth,
-      sex: generateRandomCatGender(),
+      sex: gender,
       description: generateRandomDescription(200),
       imageUrls: [generateRandomImageUrl()],
     });
-    currentTest = 'create cat with ageInMonth less than middleAgeInMonth';
-    const lessThanAgePayload = positivePayload(generateRandomNumber(1, middleAgeInMonth - 1));
-    res = testPostJson(route, lessThanAgePayload, headers, tags);
+    currentTest = 'create male cat with ageInMonth less than middleAgeInMonth';
+    const lessThanAgePayloadMale = positivePayload(generateRandomNumber(1, middleAgeInMonth - 1), "male");
+    res = testPostJson(route, lessThanAgePayloadMale, headers, tags);
     assert(res, currentFeature, config, {
       [`${currentTest} should return 201`]: (r) => r.status === 201,
-    }, lessThanAgePayload);
+    }, lessThanAgePayloadMale);
 
 
-    currentTest = 'create cat with ageInMonth more than middleAgeInMonth';
-    const moreThanAgePayload = positivePayload(generateRandomNumber(middleAgeInMonth + 1, 120082));
-    res = testPostJson(route, moreThanAgePayload, headers, tags);
+    currentTest = 'create male cat with ageInMonth more than middleAgeInMonth';
+    const moreThanAgePayloadMale = positivePayload(generateRandomNumber(middleAgeInMonth + 1, 120082), "male");
+    res = testPostJson(route, moreThanAgePayloadMale, headers, tags);
     assert(res, currentFeature, config, {
       [`${currentTest} should return 201`]: (r) => r.status === 201,
-    }, moreThanAgePayload);
+    }, moreThanAgePayloadMale);
 
 
-    currentTest = 'create cat with ageInMonth equal to middleAgeInMonth';
-    const centerAgePayload = positivePayload(middleAgeInMonth);
-    res = testPostJson(route, centerAgePayload, headers, tags);
+    currentTest = 'create male cat with ageInMonth equal to middleAgeInMonth';
+    const centerAgePayloadMale = positivePayload(middleAgeInMonth, "male");
+    res = testPostJson(route, centerAgePayloadMale, headers, tags);
     assert(res, currentFeature, config, {
       [`${currentTest} should return 201`]: (r) => r.status === 201,
-    }, centerAgePayload);
+    }, centerAgePayloadMale);
+
+    currentTest = 'create female cat with ageInMonth less than middleAgeInMonth';
+    const lessThanAgePayloadFemale = positivePayload(generateRandomNumber(1, middleAgeInMonth - 1), "female");
+    res = testPostJson(route, lessThanAgePayloadFemale, headers, tags);
+    assert(res, currentFeature, config, {
+      [`${currentTest} should return 201`]: (r) => r.status === 201,
+    }, lessThanAgePayloadFemale);
+
+
+    currentTest = 'create female cat with ageInMonth more than middleAgeInMonth';
+    const moreThanAgePayloadFemale = positivePayload(generateRandomNumber(middleAgeInMonth + 1, 120082), "female");
+    res = testPostJson(route, moreThanAgePayloadFemale, headers, tags);
+    assert(res, currentFeature, config, {
+      [`${currentTest} should return 201`]: (r) => r.status === 201,
+    }, moreThanAgePayloadFemale);
+
+
+    currentTest = 'create female cat with ageInMonth equal to middleAgeInMonth';
+    const centerAgePayloadFemale = positivePayload(middleAgeInMonth, "female");
+    res = testPostJson(route, centerAgePayloadFemale, headers, tags);
+    assert(res, currentFeature, config, {
+      [`${currentTest} should return 201`]: (r) => r.status === 201,
+    }, centerAgePayloadFemale);
   }
 
   currentTest = 'search by less than ageInMonth';

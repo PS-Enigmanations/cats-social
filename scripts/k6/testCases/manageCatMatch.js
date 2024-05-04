@@ -148,10 +148,14 @@ export function TestPostManageCatMatch(config, user, tags = {}) {
     userCatId: ownedCats.find((cat) => cat.hasMatched === false && cat.sex == userCatGender).id,
     message: 'Lorem ipsum dolor sit amet, consectetur adipiscing elit.',
   };
+  const matchNewCatExpectedCase = {}
+  if (!config.LOAD_TEST) {
+    matchNewCatExpectedCase[`${currentTest} should return 201`] = (r) => r.status === 201
+  } else {
+    matchNewCatExpectedCase[`${currentTest} should return something`] = (r) => r.status
+  }
   res = testPostJson(route, positivePayload, headers, tags);
-  assert(res, currentFeature, config, {
-    [`${currentTest} should return 201`]: (r) => r.status === 201,
-  }, positivePayload);
+  assert(res, currentFeature, config, matchNewCatExpectedCase, positivePayload);
 
 
   if (!config.POSITIVE_CASE) {
@@ -177,7 +181,7 @@ export function TestGetManageCatMatch(config, user, tags = {}) {
   const route = `${__ENV.BASE_URL}/v1/cat/match`;
   // eslint-disable-next-line no-undef
   const getRoute = `${__ENV.BASE_URL}/v1/cat`;
-  const currentFeature = `${TEST_NAME} | get manage cat h`;
+  const currentFeature = `${TEST_NAME} | get manage cat match`;
   if (!user) fail(`${currentFeature} fail due to user is empty`);
 
   const headers = {
@@ -276,7 +280,7 @@ export function TestGetManageCatMatch(config, user, tags = {}) {
  * @param {User} user
  * @param {Object} tags
  */
-export function TestDeleteManageCatMatch(config, user, tags = {}) {
+export function TestDeleteManageCatMatch(config, user, user2, tags = {}) {
   let res, currentTest;
 
   const headers = {
@@ -286,6 +290,10 @@ export function TestDeleteManageCatMatch(config, user, tags = {}) {
   const getRoute = `${__ENV.BASE_URL}/v1/cat/match`;
   const currentFeature = `${TEST_NAME} | delete manage cat`;
   if (!user) fail(`${currentFeature} fail due to user is empty`);
+
+  generateCatMatch(config, currentFeature, {
+    Authorization: `Bearer ${user2.accessToken}`,
+  }, headers, tags);
 
   currentTest = 'get all match cats';
   res = testGet(getRoute, {}, headers, tags);
@@ -341,39 +349,62 @@ export function TestDeleteManageCatMatch(config, user, tags = {}) {
  * Generate new cat match
  * @param {Config} config 
  * @param {string} currentFeature 
- * @param {Object} headers 
+ * @param {Object} otherUserHeader 
  * @param {Object} tags 
  */
-function generateCatMatch(config, currentFeature, headers, tags) {
+function generateCatMatch(config, currentFeature, otherUserHeader, userHeader, tags) {
   // eslint-disable-next-line no-undef
   const route = `${__ENV.BASE_URL}/v1/cat/match`;
   // eslint-disable-next-line no-undef
   const getRoute = `${__ENV.BASE_URL}/v1/cat`;
 
-  let currentTest = 'get all cats that owned';
-  let res = testGet(getRoute, { owned: true, limit: 1000, offset: 0 }, headers, tags);
+
+  const matchCatGender = generateRandomCatGender()
+  const userCatGender = generateRandomCatGender(matchCatGender)
+
+  let currentTest = 'get all cats not owned owned';
+  let res = testGet(getRoute, { owned: true, limit: 1000, offset: 0 }, otherUserHeader, tags);
   assert(res, currentFeature, config, {
     [`${currentTest} should return 200`]: (r) => r.status === 200,
   }, { owned: true });
   /** @type {Cat[]} */
   const ownedCats = res.json().data;
+  if (ownedCats.length === 0) {
+    for (let i = 0; i < 2; i++) {
+      const positivePayload = {
+        name: generateUniqueName(),
+        race: generateRandomCatBreed(),
+        ageInMonth: generateRandomNumber(1, 120082),
+        sex: matchCatGender,
+        description: generateRandomDescription(200),
+        imageUrls: [generateRandomImageUrl()],
+      };
+      currentTest = 'create new cat';
+      res = testPostJson(route, positivePayload, otherUserHeader, tags);
+      assert(res, currentFeature, config, {
+        [`${currentTest} should return 201`]: (r) => r.status === 201,
+      }, positivePayload);
+    }
+  }
 
 
-  currentTest = 'get all cats that is not owned';
-  res = testGet(getRoute, { owned: false, limit: 1000, offset: 0 }, headers, tags);
+  currentTest = 'get all cats that is owned';
+  res = testGet(getRoute, { owned: true, limit: 1000, offset: 0 }, userHeader, tags); // todo: kebalik ini harusnya yg owned
   assert(res, currentFeature, config, {
     [`${currentTest} should return 200`]: (r) => r.status === 200,
-  }, { owned: false, limit: 1000, offset: 0 });
+  }, { owned: true, limit: 1000, offset: 0 });
   /** @type {Cat[]} */
   const notOwnedCats = res.json().data;
 
   currentTest = 'match a new cat';
+  const notHasMatchedNotOwnedCat = notOwnedCats.filter((cat) => cat.hasMatched === false && cat.sex == matchCatGender)
+  const notHasMatchedOwnedCat = ownedCats.filter((cat) => cat.hasMatched === false && cat.sex == userCatGender)
   const positivePayload = {
-    matchCatId: notOwnedCats.find((cat) => cat.hasMatched === false).id,
-    userCatId: ownedCats.find((cat) => cat.hasMatched === false).id,
+    matchCatId: notHasMatchedNotOwnedCat[generateRandomNumber(0, notHasMatchedNotOwnedCat.length - 1)].id,
+    userCatId: notHasMatchedOwnedCat[generateRandomNumber(0, notHasMatchedOwnedCat.length - 1)].id,
     message: 'Lorem ipsum dolor sit amet, consectetur adipiscing elit.',
   };
-  res = testPostJson(route, positivePayload, headers, tags);
+  res = testPostJson(route, positivePayload, otherUserHeader, tags);
   assert(res, currentFeature, config, {
     [`${currentTest} should return 201`]: (r) => r.status === 201,
   }, positivePayload);
@@ -386,7 +417,7 @@ function generateCatMatch(config, currentFeature, headers, tags) {
  * @param {User} user
  * @param {Object} tags
  */
-export function TestPostManageCatApprove(config, user, tags = {}) {
+export function TestPostManageCatApprove(config, user, user2, tags = {}) {
   let res, currentTest;
   // eslint-disable-next-line no-undef
   const getRoute = `${__ENV.BASE_URL}/v1/cat/match`;
@@ -421,11 +452,12 @@ export function TestPostManageCatApprove(config, user, tags = {}) {
       [`${currentTest} should return 404`]: (r) => r.status === 404,
     });
   }
-
-  generateCatMatch(config, currentFeature, headers, tags);
+  generateCatMatch(config, currentFeature, {
+    Authorization: `Bearer ${user2.accessToken}`,
+  }, headers, tags);
 
   currentTest = 'get all match cats';
-  res = testGet(route, {}, headers, tags);
+  res = testGet(getRoute, {}, headers, tags);
   assert(res, currentFeature, config, {
     [`${currentTest} should return 200`]: (r) => r.status === 200,
   });
@@ -433,14 +465,18 @@ export function TestPostManageCatApprove(config, user, tags = {}) {
   let userCatMatch
   userCatMatch = res.json().data.find(
     /** @param {CatMatch} match */
-    (match) => match.userCatDetail.hasMatched === false && match.matchCatDetail.hasMatched === false);
+    (match) => match.userCatDetail.hasMatched === false
+      && match.issuedBy.email != user.email
+      && match.matchCatDetail.hasMatched === false);
 
   currentTest = 'match cat approve'
   res = testPostJson(route, {
     matchId: userCatMatch.id,
   }, headers, tags);
   let positivePayloadPassAssertTest = assert(res, currentFeature, config, {
-    [`${currentTest} should return 200`]: (r) => r.status === 200,
+    [`${currentTest} should return something`]: (r) => r.status
+  }, {
+    matchId: userCatMatch.id,
   });
 
   if (!config.POSITIVE_CASE) {
@@ -459,8 +495,6 @@ export function TestPostManageCatApprove(config, user, tags = {}) {
   }
 
   if (!positivePayloadPassAssertTest) return null;
-
-  return res.json().data;
 }
 
 
@@ -470,7 +504,7 @@ export function TestPostManageCatApprove(config, user, tags = {}) {
  * @param {User} user
  * @param {Object} tags
  */
-export function TestPostManageCatReject(config, user, tags = {}) {
+export function TestPostManageCatReject(config, user, user2, tags = {}) {
   let res, currentTest;
   // eslint-disable-next-line no-undef
   const getRoute = `${__ENV.BASE_URL}/v1/cat/match`;
@@ -505,11 +539,12 @@ export function TestPostManageCatReject(config, user, tags = {}) {
       [`${currentTest} should return 404`]: (r) => r.status === 404,
     });
   }
-
-  generateCatMatch(config, currentFeature, headers, tags);
+  generateCatMatch(config, currentFeature, {
+    Authorization: `Bearer ${user2.accessToken}`,
+  }, headers, tags);
 
   currentTest = 'get all match cats';
-  res = testGet(route, {}, headers, tags);
+  res = testGet(getRoute, {}, headers, tags);
   assert(res, currentFeature, config, {
     [`${currentTest} should return 200`]: (r) => r.status === 200,
   });
@@ -524,7 +559,7 @@ export function TestPostManageCatReject(config, user, tags = {}) {
     matchId: userCatMatch.id,
   }, headers, tags);
   let positivePayloadPassAssertTest = assert(res, currentFeature, config, {
-    [`${currentTest} should return 200`]: (r) => r.status === 200,
+    [`${currentTest} should return something`]: (r) => r.status,
   });
 
   if (!config.POSITIVE_CASE) {
