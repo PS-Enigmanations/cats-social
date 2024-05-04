@@ -114,7 +114,10 @@ func (db *catMatchRepositoryDB) GetByCatId(ctx context.Context, catId int) (*cat
 
 func (db *catMatchRepositoryDB) UpdateCatAlreadyMatches(ctx context.Context, ids []int, matched bool, tx pgx.Tx) error {
 	const sql = `
-		UPDATE cats SET has_matched=@alreadyMatched WHERE id = @catId;
+		UPDATE cats SET
+			has_matched=@alreadyMatched,
+			updated_at = NOW()
+		WHERE id = @catId;
 	`
 	batch := &pgx.Batch{}
 	for _, id := range ids {
@@ -158,7 +161,10 @@ func (db *catMatchRepositoryDB) Destroy(ctx context.Context, id int64, tx pgx.Tx
 
 func (db *catMatchRepositoryDB) UpdateCatMatchStatus(ctx context.Context, id int, status string, tx pgx.Tx) error {
 	const sql = `
-		UPDATE cat_matches SET status=$1 WHERE id = $2
+		UPDATE cat_matches SET
+			status=$1,
+			updated_at = NOW()
+		WHERE id = $2
 	`
 	_, err := tx.Exec(
 		ctx,
@@ -216,6 +222,7 @@ func (db *catMatchRepositoryDB) GetByIssuedOrReceiver(ctx context.Context, id in
 		cat_images AS mci ON mc.id = mci.cat_id
 	WHERE
 		cm.issued_by = $1 OR mc.user_id = $1
+		AND deleted_at IS NULL
 	GROUP BY
 		cm.id,
 		u.id,

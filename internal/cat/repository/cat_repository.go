@@ -234,7 +234,8 @@ func (db *Database) Update(ctx context.Context, tx pgx.Tx, model cat.Cat) (*cat.
 			race = COALESCE($3, "race"),
 			sex = COALESCE($4, "sex"),
 			age_in_month = COALESCE($5, "age_in_month"),
-			description = COALESCE($6, "description")
+			description = COALESCE($6, "description"),
+			updated_at = NOW()
 		WHERE id = $1
 		RETURNING id, name, race, sex, age_in_month, description;`
 
