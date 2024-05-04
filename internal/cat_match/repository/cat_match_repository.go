@@ -224,7 +224,7 @@ func (db *catMatchRepositoryDB) GetByIssuedOrReceiver(ctx context.Context, id in
 	LEFT JOIN
 		cat_images AS mci ON mc.id = mci.cat_id
 	WHERE
-		cm.issued_by = $1 OR mc.user_id = $1
+		(cm.issued_by = $1 OR mc.user_id = $1)
 		AND cm.deleted_at IS NULL
 	GROUP BY
 		cm.id,
