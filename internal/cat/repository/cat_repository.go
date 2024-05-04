@@ -4,6 +4,7 @@ import (
 	"context"
 	"enigmanations/cats-social/internal/cat"
 	"enigmanations/cats-social/internal/cat/request"
+	"enigmanations/cats-social/util"
 	"fmt"
 	"strconv"
 	"strings"
@@ -45,8 +46,10 @@ func (db *Database) GetAllByParams(ctx context.Context, params *request.CatGetAl
 			c.race,
 			c.sex,
 			c.age_in_month,
-			c.description
-		FROM cats c`)
+			c.description,
+			c.has_matched
+		FROM cats c
+		`)
 
 	// Id
 	if params.Id != "" {
@@ -76,29 +79,12 @@ func (db *Database) GetAllByParams(ctx context.Context, params *request.CatGetAl
 	// AgeInMonth
 	if params.AgeInMonth != "" {
 		// Parse the input value
-		ageFilter := strings.TrimSpace(params.AgeInMonth)
-		var op string
-		var ageValue int
-		if strings.HasPrefix(ageFilter, "<") {
-			op = "<"
-			ageValue, _ = strconv.Atoi(strings.TrimPrefix(ageFilter, "<"))
-		} else if strings.HasPrefix(ageFilter, ">") {
-			op = ">"
-			ageValue, _ = strconv.Atoi(strings.TrimPrefix(ageFilter, ">"))
-		} else {
-			op = "="
-			ageValue, _ = strconv.Atoi(ageFilter)
+		queryOperator, err := util.ParseQueryOperator(params.AgeInMonth)
+		if err != nil {
+			return nil, fmt.Errorf("Error when parse query operator %w", err)
 		}
-	
-		// Construct the where clause based on the parsed input
-		switch op {
-		case "<":
-			where = append(where, fmt.Sprintf(`"age_in_month" <= %d`, ageValue))
-		case ">":
-			where = append(where, fmt.Sprintf(`"age_in_month" >= %d`, ageValue))
-		default:
-			where = append(where, fmt.Sprintf(`"age_in_month" = %d`, ageValue))
-		}
+
+		where = append(where, fmt.Sprintf(`"age_in_month" %s`, queryOperator))
 	}
 	// Owned
 	if params.Owned != "" {
@@ -118,6 +104,9 @@ func (db *Database) GetAllByParams(ctx context.Context, params *request.CatGetAl
 	// Merge where clauses
 	if len(where) > 0 {
 		w := " WHERE " + strings.Join(where, " AND ") // #nosec G202
+		sql += w
+	} else {
+		w := " WHERE deleted_at IS NULL"
 		sql += w
 	}
 
@@ -157,6 +146,7 @@ func (db *Database) GetAllByParams(ctx context.Context, params *request.CatGetAl
 				&c.Sex,
 				&c.AgeInMonth,
 				&c.Description,
+				&c.HasMatched,
 			)
 
 			// return nil and error if scan operation fail
