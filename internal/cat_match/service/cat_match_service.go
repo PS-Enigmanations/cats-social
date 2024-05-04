@@ -110,20 +110,6 @@ func (svc *catMatchService) Create(req *request.CatMatchRequest, actorId int64) 
 			return err
 		}
 
-		// Update cat already match if cat matches successfully created
-		err = repo.CatMatch.UpdateCatAlreadyMatches(
-			svc.Context,
-			[]int{
-				int(req.MatchCatId),
-				int(req.UserCatId),
-			},
-			true,
-			tx,
-		)
-		if err != nil {
-			return err
-		}
-
 		return nil
 	}); err != nil {
 		return fmt.Errorf("transaction %w", err)
@@ -154,8 +140,28 @@ func (svc *catMatchService) Approve(matchId int) error {
 	repo := svc.repo
 
 	if err := database.BeginTransaction(svc.Context, svc.pool, func(tx pgx.Tx) error {
+		// Get cat match
+		catMatchFound, err := repo.CatMatch.Get(svc.Context, matchId)
+		if err != nil {
+			return err
+		}
+
 		// Approve cat matches
-		err := repo.CatMatch.UpdateCatMatchStatus(svc.Context, matchId, "success", tx)
+		err = repo.CatMatch.UpdateCatMatchStatus(svc.Context, catMatchFound.Id, "success", tx)
+		if err != nil {
+			return err
+		}
+
+		// Update cat already match if cat matches approved
+		err = repo.CatMatch.UpdateCatAlreadyMatches(
+			svc.Context,
+			[]int{
+				int(catMatchFound.UserCatId),
+				int(catMatchFound.MatchCatId),
+			},
+			true,
+			tx,
+		)
 		if err != nil {
 			return err
 		}
@@ -164,7 +170,7 @@ func (svc *catMatchService) Approve(matchId int) error {
 	}); err != nil {
 		return fmt.Errorf("transaction %w", err)
 	}
-	
+
 	return nil
 }
 
@@ -182,7 +188,7 @@ func (svc *catMatchService) Reject(matchId int) error {
 	}); err != nil {
 		return fmt.Errorf("transaction %w", err)
 	}
-	
+
 	return nil
 }
 
@@ -203,4 +209,3 @@ func (svc *catMatchService) GetByIssuedOrReceiver(matchId int) ([]*catmatch.CatM
 
 	return cmRes, nil
 }
-

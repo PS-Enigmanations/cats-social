@@ -27,6 +27,7 @@ type CatMatchRepository interface {
 	Save(ctx context.Context, model *catmatch.CatMatch, tx pgx.Tx) error
 	UpdateCatAlreadyMatches(ctx context.Context, ids []int, matched bool, tx pgx.Tx) error
 	UpdateCatMatchStatus(ctx context.Context, id int, status string, tx pgx.Tx) error
+	Get(ctx context.Context, id int) (*catmatch.CatMatch, error)
 	GetByCatId(ctx context.Context, id int) (*catmatch.CatMatch, error)
 	GetAssociationByCatId(ctx context.Context, id int) (*AssociationByCatIdValue, error)
 	GetByIssuedOrReceiver(ctx context.Context, id int) ([]*catmatch.CatMatchValue, error)
@@ -60,6 +61,31 @@ func (db *catMatchRepositoryDB) Save(ctx context.Context, model *catmatch.CatMat
 	}
 
 	return nil
+}
+
+func (db *catMatchRepositoryDB) Get(ctx context.Context, id int) (*catmatch.CatMatch, error) {
+	const sql = `SELECT id, match_cat_id, issued_by, user_cat_id, message, status, created_at
+	FROM cat_matches
+	WHERE id = $1 AND deleted_at IS NULL LIMIT 1;`
+
+	row := db.pool.QueryRow(ctx, sql, id)
+	v := new(catmatch.CatMatch)
+
+	err := row.Scan(
+		&v.Id,
+		&v.MatchCatId,
+		&v.IssuedBy,
+		&v.UserCatId,
+		&v.Message,
+		&v.Status,
+		&v.CreatedAt,
+	)
+	if err != nil {
+		log.Print("Error getting cat match", err)
+		return nil, err
+	}
+
+	return v, nil
 }
 
 func (db *catMatchRepositoryDB) GetAssociationByCatId(ctx context.Context, id int) (*AssociationByCatIdValue, error) {
