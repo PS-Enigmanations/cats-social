@@ -105,6 +105,9 @@ func (db *catMatchRepositoryDB) GetByCatId(ctx context.Context, catId int) (*cat
 		&v.CreatedAt,
 	)
 	if err != nil {
+		if err == pgx.ErrNoRows {
+			return nil, nil
+		}
 		log.Print("Error getting cat match", err)
 		return nil, err
 	}
