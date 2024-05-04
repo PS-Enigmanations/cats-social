@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"os"
 
+	"enigmanations/cats-social/config"
 	"enigmanations/cats-social/middleware"
 
 	// Cat
@@ -27,26 +28,21 @@ import (
 	userServiceInternal "enigmanations/cats-social/internal/user/service"
 
 	"github.com/bmizerany/pat"
-	"github.com/joho/godotenv"
 )
 
 func main() {
-	// Load env
-	err := godotenv.Load()
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "Failed to load .env %v\n", err)
-		os.Exit(1)
-	}
+	// Load config
+	cfg := config.GetConfig()
 
 	// Connect to the database
 	pgUrl := `postgres://%s:%s@%s:%d/%s?%s&pool_max_conns=%d`
 	pgUrl = fmt.Sprintf(pgUrl,
-		os.Getenv("DB_USERNAME"),
-		os.Getenv("DB_PASSWORD"),
-		os.Getenv("DB_HOST"),
-		5432,
-		os.Getenv("DB_NAME"),
-		os.Getenv("DB_PARAMS"),
+		cfg.DBUsername,
+		cfg.DBPass,
+		cfg.DBHost,
+		cfg.DBPort,
+		cfg.DBName,
+		cfg.DBParams,
 		32,
 	)
 
@@ -137,7 +133,7 @@ func main() {
 	router.Del("/v1/cat/match/:id", auth.ProtectedHandler(http.HandlerFunc(catMatchController.CatMatchDestroy)))
 
 	// Run the server
-	appServeAddr := ":" + os.Getenv("APP_PORT")
-	fmt.Printf("Serving on http://localhost:%s\n", os.Getenv("APP_PORT"))
+	appServeAddr := ":" + fmt.Sprint(cfg.AppPort)
+	fmt.Printf("Serving on http://localhost:%s\n", fmt.Sprint(cfg.AppPort))
 	log.Fatalf("%v", http.ListenAndServe(appServeAddr, router))
 }
