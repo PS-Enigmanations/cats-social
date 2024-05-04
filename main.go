@@ -11,30 +11,39 @@ import (
 
 	"enigmanations/cats-social/config"
 	"enigmanations/cats-social/middleware"
-
-	// Cat
-	catControllerInternal "enigmanations/cats-social/internal/cat/controller"
-	catRepositoryInternal "enigmanations/cats-social/internal/cat/repository"
-	catServiceInternal "enigmanations/cats-social/internal/cat/service"
-
-	// Cat Match
-	catMatchControllerInternal "enigmanations/cats-social/internal/cat_match/controller"
-	catMatchRepositoryInternal "enigmanations/cats-social/internal/cat_match/repository"
-	catMatchServiceInternal "enigmanations/cats-social/internal/cat_match/service"
-
-	// User
-	userControllerInternal "enigmanations/cats-social/internal/user/controller"
-	userRepositoryInternal "enigmanations/cats-social/internal/user/repository"
-	userServiceInternal "enigmanations/cats-social/internal/user/service"
+	routes "enigmanations/cats-social/router"
 
 	"github.com/bmizerany/pat"
+	"github.com/jackc/pgx/v5/pgxpool"
 )
 
 func main() {
 	// Load config
 	cfg := config.GetConfig()
 
+	// Shared ctx
+	ctx := context.Background()
+
 	// Connect to the database
+	pool := initDatabase(cfg, ctx)
+	defer pool.Close()
+
+	// Prepare middleware
+	middleware := middleware.RegisterMiddleware(ctx, pool)
+
+	// Prepare router
+	router := pat.New()
+
+	// Register routes
+	routes.RegisterRouter(ctx, pool, router, middleware)
+
+	// Run the server
+	appServeAddr := ":" + fmt.Sprint(cfg.AppPort)
+	fmt.Printf("Serving on http://localhost:%s\n", fmt.Sprint(cfg.AppPort))
+	log.Fatalf("%v", http.ListenAndServe(appServeAddr, router))
+}
+
+func initDatabase(cfg *config.Configuration, ctx context.Context) *pgxpool.Pool {
 	pgUrl := `postgres://%s:%s@%s:%d/%s?%s&pool_max_conns=%d`
 	pgUrl = fmt.Sprintf(pgUrl,
 		cfg.DBUsername,
@@ -46,94 +55,18 @@ func main() {
 		32,
 	)
 
-	pgPool, err := database.NewPGXPool(context.Background(), pgUrl, &database.PGXStdLogger{
+	pgPool, err := database.NewPGXPool(ctx, pgUrl, &database.PGXStdLogger{
 		Logger: slog.Default(),
 	})
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Unable to connect to database: %v\n", err)
 		os.Exit(1)
 	}
-	defer pgPool.Close()
 
 	// Check reachability
-	if _, err = pgPool.Exec(context.Background(), `SELECT 1`); err != nil {
+	if _, err = pgPool.Exec(ctx, `SELECT 1`); err != nil {
 		fmt.Errorf("pool.Exec() error: %v", err)
 	}
 
-	// Shared ctx
-	ctx := context.Background()
-
-	// Prepare router
-	router := pat.New()
-
-	// Prepare middleware
-	auth := middleware.NewAuthMiddleware(pgPool, ctx)
-
-	// Users
-	userRepository := userRepositoryInternal.NewUserRepository(pgPool)
-	userAuthRepository := userRepositoryInternal.NewUserAuthRepository(pgPool)
-	userService := userServiceInternal.NewUserService(
-		ctx,
-		pgPool,
-		&userServiceInternal.UserDependency{
-			User:    userRepository,
-			Session: userAuthRepository,
-		},
-	)
-	userAuthService := userServiceInternal.NewUserAuthService(
-		ctx,
-		pgPool,
-		&userServiceInternal.UserAuthDependency{
-			User:    userRepository,
-			Session: userAuthRepository,
-		},
-	)
-	userController := userControllerInternal.NewUserController(userService, userAuthService)
-
-	// Users api endpoint
-	router.Post("/v1/user/register", http.HandlerFunc(userController.UserRegister))
-	router.Post("/v1/user/login", http.HandlerFunc(userController.UserLogin))
-
-	// Cats
-	catRepository := catRepositoryInternal.NewCatRepository(pgPool)
-	catMatchRepository := catMatchRepositoryInternal.NewCatMatchRepository(pgPool)
-
-	catService := catServiceInternal.NewCatService(
-		ctx,
-		pgPool,
-		&catServiceInternal.CatDependency{
-			Cat:      catRepository,
-			CatMatch: catMatchRepository,
-		},
-	)
-	catController := catControllerInternal.NewCatController(catService)
-
-	// Cats api endpoint
-	router.Get("/v1/cat", auth.ProtectedHandler(http.HandlerFunc(catController.CatGetAllController)))
-	router.Post("/v1/cat", auth.ProtectedHandler(http.HandlerFunc(catController.CatCreateController)))
-	router.Del("/v1/cat/:id", auth.ProtectedHandler(http.HandlerFunc(catController.CatDeleteController)))
-	router.Put("/v1/cat/:id", auth.ProtectedHandler(http.HandlerFunc(catController.CatUpdateController)))
-
-	// Cat Match
-	catMatchService := catMatchServiceInternal.NewCatMatchService(
-		ctx,
-		pgPool,
-		&catMatchServiceInternal.CatMatchDependency{
-			User:     userRepository,
-			CatMatch: catMatchRepository,
-		},
-	)
-	catMatchController := catMatchControllerInternal.NewCatMatchController(catMatchService)
-
-	// Cat Match api endpoint
-	router.Post("/v1/cat/match", auth.ProtectedHandler(http.HandlerFunc(catMatchController.CatMatchCreate)))
-	router.Get("/v1/cat/match", auth.ProtectedHandler(http.HandlerFunc(catMatchController.CatMatchGet)))
-	router.Post("/v1/cat/match/approve", auth.ProtectedHandler(http.HandlerFunc(catMatchController.CatMatchApprove)))
-	router.Post("/v1/cat/match/reject", auth.ProtectedHandler(http.HandlerFunc(catMatchController.CatMatchReject)))
-	router.Del("/v1/cat/match/:id", auth.ProtectedHandler(http.HandlerFunc(catMatchController.CatMatchDestroy)))
-
-	// Run the server
-	appServeAddr := ":" + fmt.Sprint(cfg.AppPort)
-	fmt.Printf("Serving on http://localhost:%s\n", fmt.Sprint(cfg.AppPort))
-	log.Fatalf("%v", http.ListenAndServe(appServeAddr, router))
+	return pgPool
 }
