@@ -43,7 +43,7 @@ const (
 
 type CatUpdateRequest struct {
 	Name        string   `json:"name,omitempty"`
-	Race        string   `json:"race" validate:"omitempty,oneof=Persian MaineCoon Siamese Ragdoll Bengal Sphynx BritishShorthair Abyssinian ScottishFold Birman"`
+	Race        CatRace  `validate:"required"`
 	Sex         string   `json:"sex,omitempty" validate:"omitempty,oneof=male female"`
 	AgeInMonth  int      `json:"ageInMonth,omitempty" validate:"omitempty,numeric,min=1,max=120082"`
 	Description string   `json:"description,omitempty" validate:"omitempty"`

@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+	"database/sql"
 	"fmt"
 
 	"enigmanations/cats-social/internal/cat"
@@ -138,7 +139,7 @@ func (svc *catService) Update(p *request.CatUpdateRequest, id int) error {
 		if p.Sex != "" {
 			// Check requested cat match for this cat is exists
 			catMatchFound, err := repo.CatMatch.GetByCatId(svc.Context, catFound.Id)
-			if err != nil {
+			if err != nil && err == sql.ErrNoRows {
 				return err
 			}
 			// If exists, sex should be not editable
