@@ -226,7 +226,7 @@ func (db *catMatchRepositoryDB) GetByIssuedOrReceiver(ctx context.Context, id in
 		uc.sex AS user_cat_sex,
 		uc.age_in_month AS user_cat_age_in_month,
 		uc.description AS user_cat_description,
-		uc.has_matched AS user_cat_is_already_matched,
+		uc.has_matched AS user_cat_has_matched,
 		uc.created_at AS user_cat_created_at,
 		mc.id AS match_cat_id,
 		mc.user_id AS match_cat_user_id,
@@ -235,7 +235,7 @@ func (db *catMatchRepositoryDB) GetByIssuedOrReceiver(ctx context.Context, id in
 		mc.sex AS match_cat_sex,
 		mc.age_in_month AS match_cat_age_in_month,
 		mc.description AS match_cat_description,
-		mc.has_matched AS match_cat_is_already_matched,
+		mc.has_matched AS match_cat_has_matched,
 		mc.created_at AS match_cat_created_at
 	FROM
 		cat_matches AS cm
@@ -291,7 +291,7 @@ func (db *catMatchRepositoryDB) GetByIssuedOrReceiver(ctx context.Context, id in
 				&cm.UserCatSex,
 				&cm.UserCatAgeInMonth,
 				&cm.UserCatDescription,
-				&cm.UserCatIsAlreadyMatched,
+				&cm.UserCatHasMatched,
 				&cm.UserCatCreatedAt,
 				&cm.MatchCatId,
 				&cm.MatchCatUserId,
@@ -300,7 +300,7 @@ func (db *catMatchRepositoryDB) GetByIssuedOrReceiver(ctx context.Context, id in
 				&cm.MatchCatSex,
 				&cm.MatchCatAgeInMonth,
 				&cm.MatchCatDescription,
-				&cm.MatchCatIsAlreadyMatched,
+				&cm.MatchCatHasMatched,
 				&cm.MatchCatCreatedAt,
 				// &cm.UserCatImageUrls,
 				// &cm.MatchCatImageUrls,

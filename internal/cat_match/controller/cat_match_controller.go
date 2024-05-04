@@ -2,7 +2,6 @@ package controller
 
 import (
 	"encoding/json"
-	catmatch "enigmanations/cats-social/internal/cat_match"
 	"enigmanations/cats-social/internal/cat_match/errs"
 	"enigmanations/cats-social/internal/cat_match/request"
 	"enigmanations/cats-social/internal/cat_match/service"
@@ -20,7 +19,7 @@ type CatMatchController interface {
 	CatMatchDestroy(w http.ResponseWriter, r *http.Request)
 	CatMatchApprove(w http.ResponseWriter, r *http.Request)
 	CatMatchReject(w http.ResponseWriter, r *http.Request)
-	CatMatchGet(w http.ResponseWriter, r *http.Request)
+	CatMatchGetAll(w http.ResponseWriter, r *http.Request)
 }
 
 type catMatchController struct {
@@ -141,12 +140,7 @@ func (c *catMatchController) CatMatchReject(w http.ResponseWriter, r *http.Reque
 	return
 }
 
-type CatMatchControllerResponse struct {
-	Message string                       `json:"message"`
-	Data    []*catmatch.CatMatchResponse `json:"data"`
-}
-
-func (c *catMatchController) CatMatchGet(w http.ResponseWriter, r *http.Request) {
+func (c *catMatchController) CatMatchGetAll(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusOK)
 	w.Header().Add("Content-Type", "application/json")
 
@@ -156,14 +150,8 @@ func (c *catMatchController) CatMatchGet(w http.ResponseWriter, r *http.Request)
 		log.Fatalf("Error happened in JSON marshal. Err: %s", err)
 	}
 
-	// Create the response wrapper
-	response := CatMatchControllerResponse{
-		Message: "success",
-		Data:    data,
-	}
-
 	// Marshal the response into JSON
-	jsonResp, err := json.Marshal(response)
+	jsonResp, err := json.Marshal(data)
 	if err != nil {
 		log.Fatalf("Error happened in JSON marshal. Err: %s", err)
 		return

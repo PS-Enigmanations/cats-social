@@ -41,7 +41,7 @@ func (v *v1Router) Load(router *pat.PatternServeMux, m middleware.Middleware) {
 
 	// Cat Match api endpoint
 	router.Post("/v1/cat/match", m.Auth.ProtectedHandler(http.HandlerFunc(v.CatMatch.Controller.CatMatchCreate)))
-	router.Get("/v1/cat/match", m.Auth.ProtectedHandler(http.HandlerFunc(v.CatMatch.Controller.CatMatchGet)))
+	router.Get("/v1/cat/match", m.Auth.ProtectedHandler(http.HandlerFunc(v.CatMatch.Controller.CatMatchGetAll)))
 	router.Post("/v1/cat/match/approve", m.Auth.ProtectedHandler(http.HandlerFunc(v.CatMatch.Controller.CatMatchApprove)))
 	router.Post("/v1/cat/match/reject", m.Auth.ProtectedHandler(http.HandlerFunc(v.CatMatch.Controller.CatMatchReject)))
 	router.Del("/v1/cat/match/:id", m.Auth.ProtectedHandler(http.HandlerFunc(v.CatMatch.Controller.CatMatchDestroy)))
