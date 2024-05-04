@@ -9,8 +9,8 @@ import (
 	"enigmanations/cats-social/internal/user/response"
 	"enigmanations/cats-social/pkg/bcrypt"
 	"enigmanations/cats-social/pkg/jwt"
+	"enigmanations/cats-social/util"
 	"fmt"
-	"net/mail"
 
 	"enigmanations/cats-social/pkg/database"
 
@@ -37,11 +37,6 @@ func NewUserService(ctx context.Context, pool *pgxpool.Pool, repo *UserDependenc
 	return &userService{Context: ctx, pool: pool, repo: repo}
 }
 
-func IsEmail(email string) bool {
-	emailAddress, err := mail.ParseAddress(email)
-	return err == nil && emailAddress.Address == email
-}
-
 func (svc *userService) validate(req *request.UserRegisterRequest) (*user.User, error) {
 	repo := svc.repo
 
@@ -51,7 +46,7 @@ func (svc *userService) validate(req *request.UserRegisterRequest) (*user.User, 
 
 	if req.Email != "" {
 		// Check email format
-		if !IsEmail(req.Email) {
+		if !util.IsEmail(req.Email) {
 			return nil, errs.UserErrEmailInvalidFormat
 		}
 

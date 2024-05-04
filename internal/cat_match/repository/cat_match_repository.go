@@ -120,6 +120,7 @@ func (db *catMatchRepositoryDB) Destroy(ctx context.Context, id int64, tx pgx.Tx
 		sql,
 		id,
 	)
+
 	if err != nil {
 		log.Fatal("Cannot delete cat match on database", slog.Any("error", err))
 		return errors.New("Cannot delete cat match on database")
@@ -148,7 +149,7 @@ func (db *catMatchRepositoryDB) UpdateCatMatchStatus(ctx context.Context, id int
 
 func (db *catMatchRepositoryDB) GetByIssuedOrReceiver(ctx context.Context, id int) ([]*catmatch.CatMatchValue, error) {
 	const sql = `
-	SELECT 
+	SELECT
 		cm.id AS cat_match_id,
 		cm.message,
 		cm.status,
@@ -174,19 +175,19 @@ func (db *catMatchRepositoryDB) GetByIssuedOrReceiver(ctx context.Context, id in
 		mc.description AS match_cat_description,
 		mc.has_matched AS match_cat_is_already_matched,
 		mc.created_at AS match_cat_created_at
-	FROM 
+	FROM
 		cat_matches AS cm
-	JOIN 
+	JOIN
 		users AS u ON cm.issued_by = u.id
-	JOIN 
+	JOIN
 		cats AS uc ON cm.user_cat_id = uc.id
-	JOIN 
+	JOIN
 		cats AS mc ON cm.match_cat_id = mc.id
 	LEFT JOIN
 		cat_images AS uci ON uc.id = uci.cat_id
 	LEFT JOIN
 		cat_images AS mci ON mc.id = mci.cat_id
-	WHERE 
+	WHERE
 		cm.issued_by = $1 OR mc.user_id = $1
 	GROUP BY
 		cm.id,
@@ -208,7 +209,7 @@ func (db *catMatchRepositoryDB) GetByIssuedOrReceiver(ctx context.Context, id in
 	var cms []*catmatch.CatMatchValue
 	if rows != nil {
 		for rows.Next() {
-	// 		// create 'cm' for struct 'CatMatch'
+			// 		// create 'cm' for struct 'CatMatch'
 			cm := new(catmatch.CatMatchValue)
 
 			// scan rows and place it in 'cm' (cat match) container
@@ -242,7 +243,7 @@ func (db *catMatchRepositoryDB) GetByIssuedOrReceiver(ctx context.Context, id in
 				// &cm.MatchCatImageUrls,
 			)
 
-	 		// return nil and error if scan operation fail
+			// return nil and error if scan operation fail
 			if err != nil {
 				return nil, err
 			}

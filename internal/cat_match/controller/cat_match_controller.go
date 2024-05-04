@@ -8,9 +8,9 @@ import (
 	"enigmanations/cats-social/internal/cat_match/service"
 	"enigmanations/cats-social/internal/user"
 	"errors"
+	"log"
 	"net/http"
 	"strconv"
-	"log"
 
 	"github.com/go-playground/validator"
 )
@@ -73,8 +73,13 @@ func (c *catMatchController) CatMatchCreate(w http.ResponseWriter, r *http.Reque
 }
 
 func (c *catMatchController) CatMatchDestroy(w http.ResponseWriter, r *http.Request) {
-	id := r.URL.Query().Get("id")
+	id := r.URL.Query().Get(":id")
+
 	catId, err := strconv.Atoi(id)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
 
 	if err = c.Service.Destroy(int64(catId)); err != nil {
 		return
@@ -137,8 +142,8 @@ func (c *catMatchController) CatMatchReject(w http.ResponseWriter, r *http.Reque
 }
 
 type CatMatchControllerResponse struct {
-    Message string               `json:"message"`
-    Data    []*catmatch.CatMatchResponse  `json:"data"`
+	Message string                       `json:"message"`
+	Data    []*catmatch.CatMatchResponse `json:"data"`
 }
 
 func (c *catMatchController) CatMatchGet(w http.ResponseWriter, r *http.Request) {
@@ -152,18 +157,18 @@ func (c *catMatchController) CatMatchGet(w http.ResponseWriter, r *http.Request)
 	}
 
 	// Create the response wrapper
-    response := CatMatchControllerResponse{
-        Message: "success",
-        Data:    data,
-    }
+	response := CatMatchControllerResponse{
+		Message: "success",
+		Data:    data,
+	}
 
-    // Marshal the response into JSON
-    jsonResp, err := json.Marshal(response)
-    if err != nil {
-        log.Fatalf("Error happened in JSON marshal. Err: %s", err)
-        return
-    }
+	// Marshal the response into JSON
+	jsonResp, err := json.Marshal(response)
+	if err != nil {
+		log.Fatalf("Error happened in JSON marshal. Err: %s", err)
+		return
+	}
 
-    // Write the JSON response
-    w.Write(jsonResp)
+	// Write the JSON response
+	w.Write(jsonResp)
 }
