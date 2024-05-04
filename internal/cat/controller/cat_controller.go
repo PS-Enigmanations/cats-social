@@ -2,12 +2,15 @@ package controller
 
 import (
 	"encoding/json"
+	"enigmanations/cats-social/internal/cat/errs"
 	"enigmanations/cats-social/internal/cat/request"
 	"enigmanations/cats-social/internal/cat/service"
 	"enigmanations/cats-social/internal/user"
 	"enigmanations/cats-social/util"
+	"errors"
 	"log"
 	"net/http"
+	"strconv"
 
 	"github.com/go-playground/validator"
 )
@@ -15,8 +18,8 @@ import (
 type CatMatchController interface {
 	CatGetAllController(w http.ResponseWriter, r *http.Request)
 	CatCreateController(w http.ResponseWriter, r *http.Request)
+	CatDeleteController(w http.ResponseWriter, r *http.Request)
 	//CatUpdateController(w http.ResponseWriter, r *http.Request)
-	//CatDeleteController(w http.ResponseWriter, r *http.Request)
 }
 
 type catController struct {
@@ -80,6 +83,36 @@ func (c *catController) CatCreateController(w http.ResponseWriter, r *http.Reque
 	return
 }
 
+func (c *catController) CatDeleteController(w http.ResponseWriter, r *http.Request) {
+	// get cat id from request params
+	id := r.URL.Query().Get(":id")
+
+	catId, err := strconv.Atoi(id)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	err = c.Service.Delete(catId)
+	if err != nil {
+		switch {
+		case errors.Is(err, errs.CatErrNotFound):
+			http.Error(w, err.Error(), http.StatusNotFound)
+			break
+		default:
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			break
+		}
+
+		return
+	}
+
+	w.WriteHeader(http.StatusOK)
+	w.Header().Add("Content-Type", "application/json")
+
+	return
+}
+
 /**
 func (c *catController) CatUpdateController(w http.ResponseWriter, r *http.Request) {
 	var reqBody cat.CatUpdateRequest
@@ -118,29 +151,5 @@ func (c *catController) CatUpdateController(w http.ResponseWriter, r *http.Reque
 	return
 }
 
-func (c *catController) CatDeleteController(w http.ResponseWriter, r *http.Request) {
-	// get cat id from request params
-	catId := r.URL.Query().Get("id")
-	id, err := strconv.Atoi(catId)
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
-		return
-	}
 
-	_, err = c.Service.FindById(id)
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusNotFound)
-		return
-	}
-
-	err = c.Service.Delete(id)
-	w.Header().Add("Content-Type", "application/json")
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
-		w.WriteHeader(http.StatusBadRequest)
-		return
-	}
-	w.WriteHeader(http.StatusOK)
-	return
-}
 */

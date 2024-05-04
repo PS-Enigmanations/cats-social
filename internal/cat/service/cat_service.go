@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	"enigmanations/cats-social/internal/cat"
+	"enigmanations/cats-social/internal/cat/errs"
 	"enigmanations/cats-social/internal/cat/repository"
 	"enigmanations/cats-social/internal/cat/request"
 	"enigmanations/cats-social/internal/cat/response"
@@ -18,6 +19,7 @@ import (
 type CatService interface {
 	GetAllByParams(p *request.CatGetAllQueryParams, actorId int) (*response.CatGetAllResponse, error)
 	Create(payload *request.CatCreateRequest, actorId int) (*response.CatCreateResponse, error)
+	Delete(id int) error
 }
 
 type catService struct {
@@ -77,4 +79,26 @@ func (svc *catService) Create(payload *request.CatCreateRequest, actorId int) (*
 	}
 
 	return result, nil
+}
+
+func (svc *catService) Delete(id int) error {
+	if err := database.BeginTransaction(svc.Context, svc.pool, func(tx pgx.Tx) error {
+		// Find cat
+		catFound, err := svc.db.FindById(svc.Context, id)
+		if err != nil {
+			return errs.CatErrNotFound
+		}
+
+		// Delete cat
+		err = svc.db.Delete(svc.Context, tx, catFound.Id)
+		if err != nil {
+			return err
+		}
+
+		return nil
+	}); err != nil {
+		return fmt.Errorf("transaction %w", err)
+	}
+
+	return nil
 }
