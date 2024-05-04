@@ -2,42 +2,44 @@ package util
 
 import (
 	"fmt"
+	"regexp"
 	"strconv"
 	"strings"
 )
 
-func ParseQueryOperator(s string) (string, error) {
-	parts := strings.Split(s, "=")
-	if len(parts) != 2 {
-		return "", fmt.Errorf("invalid input: %s", s)
+type queryOperator struct {
+	Operator string
+	Value    int
+}
+
+func ParseQueryOperator(s string) (*queryOperator, error) {
+	pattern := `^([<>]?)([=]?)(\d+)$`
+
+	re := regexp.MustCompile(pattern)
+	matches := re.FindStringSubmatch(s)
+	if matches == nil {
+		return nil, fmt.Errorf("Invalid input: %s", s)
 	}
 
-	field := parts[0]
-	valueStr := parts[1]
+	// Extract the result and value from the matches
+	condition := matches[1]
+	valueStr := matches[3]
 
-	var condition string
-	var value int
-	if strings.HasPrefix(valueStr, ">") {
+	if strings.HasPrefix(condition, ">") {
 		condition = ">"
-		valueStr = valueStr[1:]
-	} else if strings.HasPrefix(valueStr, "<") {
+	} else if strings.HasPrefix(condition, "<") {
 		condition = "<"
-		valueStr = valueStr[1:]
 	} else {
 		condition = "="
 	}
 
 	value, err := strconv.Atoi(valueStr)
 	if err != nil {
-		return "", fmt.Errorf("invalid value: %s", valueStr)
+		return nil, fmt.Errorf("invalid value: %s", valueStr)
 	}
 
-	switch condition {
-	case ">":
-		return fmt.Sprintf("%s>=%d", field, value), nil
-	case "<":
-		return fmt.Sprintf("%s<=%d", field, value), nil
-	default:
-		return fmt.Sprintf("%s=%d", field, value), nil
-	}
+	return &queryOperator{
+		Operator: condition,
+		Value:    value,
+	}, nil
 }
