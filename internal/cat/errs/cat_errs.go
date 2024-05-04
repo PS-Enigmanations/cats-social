@@ -6,7 +6,8 @@ import (
 )
 
 var (
-	CatErrNotFound = errors.New("Cat not found")
+	CatErrNotFound       = errors.New("Cat not found")
+	CatErrSexNotEditable = errors.New("Cat sex is not editable, already requested to match")
 )
 
 type CatError struct {

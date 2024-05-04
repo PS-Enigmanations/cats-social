@@ -14,12 +14,14 @@ import (
 )
 
 type CatRepository interface {
-	GetAllByParams(ctx context.Context, params *request.CatGetAllQueryParams, actorId int) ([]*cat.Cat, error)
+	// Cat
+	GetAllByParams(ctx context.Context, params *request.CatGetAllQueryParams, ownerId int) ([]*cat.Cat, error)
 	FindById(ctx context.Context, catId int) (*cat.Cat, error)
 	Save(ctx context.Context, tx pgx.Tx, model cat.Cat) (*cat.Cat, error)
 	Update(ctx context.Context, tx pgx.Tx, model cat.Cat) (*cat.Cat, error)
-	SaveImageUrls(ctx context.Context, tx pgx.Tx, catId int, urls []string) error
 	Delete(ctx context.Context, tx pgx.Tx, catId int) error
+	// Cat images
+	SaveImageUrls(ctx context.Context, tx pgx.Tx, catId int, urls []string) error
 	DeleteImageUrls(ctx context.Context, tx pgx.Tx, catId int) error
 }
 
@@ -33,7 +35,7 @@ func NewCatRepository(pool *pgxpool.Pool) CatRepository {
 	}
 }
 
-func (db *Database) GetAllByParams(ctx context.Context, params *request.CatGetAllQueryParams, actorId int) ([]*cat.Cat, error) {
+func (db *Database) GetAllByParams(ctx context.Context, params *request.CatGetAllQueryParams, ownerId int) ([]*cat.Cat, error) {
 	var (
 		args  []any
 		where []string
@@ -88,7 +90,7 @@ func (db *Database) GetAllByParams(ctx context.Context, params *request.CatGetAl
 	}
 	// Owned
 	if params.Owned != "" {
-		args = append(args, actorId)
+		args = append(args, ownerId)
 		if params.Owned != "true" {
 			where = append(where, fmt.Sprintf(`"user_id" = $%d`, len(args)))
 		} else {
@@ -228,11 +230,11 @@ func (db *Database) Save(ctx context.Context, tx pgx.Tx, model cat.Cat) (*cat.Ca
 
 func (db *Database) Update(ctx context.Context, tx pgx.Tx, model cat.Cat) (*cat.Cat, error) {
 	const sql = `UPDATE cats
-		SET name = $2,
-			race = $3,
-			sex = $4,
-			age_in_month = $5,
-			description = $6
+		SET name = COALESCE($2, "name"),
+			race = COALESCE($3, "race"),
+			sex = COALESCE($4, "sex"),
+			age_in_month = COALESCE($5, "age_in_month"),
+			description = COALESCE($6, "description")
 		WHERE id = $1
 		RETURNING id, name, race, sex, age_in_month, description;`
 

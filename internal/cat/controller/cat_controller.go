@@ -19,7 +19,7 @@ type CatMatchController interface {
 	CatGetAllController(w http.ResponseWriter, r *http.Request)
 	CatCreateController(w http.ResponseWriter, r *http.Request)
 	CatDeleteController(w http.ResponseWriter, r *http.Request)
-	//CatUpdateController(w http.ResponseWriter, r *http.Request)
+	CatUpdateController(w http.ResponseWriter, r *http.Request)
 }
 
 type catController struct {
@@ -113,43 +113,48 @@ func (c *catController) CatDeleteController(w http.ResponseWriter, r *http.Reque
 	return
 }
 
-/**
 func (c *catController) CatUpdateController(w http.ResponseWriter, r *http.Request) {
-	var reqBody cat.CatUpdateRequest
+	// get cat id from request params
+	id := r.URL.Query().Get(":id")
+
+	catId, err := strconv.Atoi(id)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	var reqBody request.CatUpdateRequest
+
 	if err := json.NewDecoder(r.Body).Decode(&reqBody); err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
 
 	validate := validator.New()
-	err := validate.Struct(reqBody)
+	err = validate.Struct(reqBody)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
 
-	_, err = c.Service.FindById(reqBody.Id)
+	err = c.Service.Update(&reqBody, catId)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusNotFound)
-		return
-	}
-
-	cat, err := c.Service.Update(&reqBody, reqBody.Id)
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		switch {
+		case errors.Is(err, errs.CatErrNotFound):
+			http.Error(w, err.Error(), http.StatusNotFound)
+			break
+		case errors.Is(err, errs.CatErrSexNotEditable):
+			http.Error(w, err.Error(), http.StatusBadRequest)
+			break
+		default:
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			break
+		}
 		return
 	}
 
 	w.WriteHeader(http.StatusOK)
 	w.Header().Add("Content-Type", "application/json")
 
-	jsonResp, err := json.Marshal(cat)
-	if err != nil {
-		log.Fatalf("Error happened in JSON marshal. Err: %s", err)
-	}
-	w.Write(jsonResp)
 	return
 }
-
-
-*/
