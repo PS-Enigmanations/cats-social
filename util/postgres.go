@@ -9,7 +9,7 @@ import (
 func ParseQueryOperator(s string) (string, error) {
 	parts := strings.Split(s, "=")
 	if len(parts) != 2 {
-		return "", fmt.Errorf("Invalid input: %s", s)
+		return "", fmt.Errorf("invalid input: %s", s)
 	}
 
 	field := parts[0]
@@ -17,7 +17,6 @@ func ParseQueryOperator(s string) (string, error) {
 
 	var condition string
 	var value int
-
 	if strings.HasPrefix(valueStr, ">") {
 		condition = ">"
 		valueStr = valueStr[1:]
@@ -30,7 +29,7 @@ func ParseQueryOperator(s string) (string, error) {
 
 	value, err := strconv.Atoi(valueStr)
 	if err != nil {
-		return "", fmt.Errorf("Invalid value: %s", valueStr)
+		return "", fmt.Errorf("invalid value: %s", valueStr)
 	}
 
 	switch condition {
