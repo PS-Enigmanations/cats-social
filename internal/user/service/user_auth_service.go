@@ -36,9 +36,9 @@ func NewUserAuthService(ctx context.Context, pool *pgxpool.Pool, repo *UserAuthD
 }
 
 type loginReturn struct {
-	User *user.User
+	User        *user.User
 	UserSession *user.UserSession
-	AccessToken    string
+	AccessToken string
 }
 
 func (svc *userAuthService) Login(req *request.UserLoginRequest) (*loginReturn, error) {
@@ -69,8 +69,8 @@ func (svc *userAuthService) Login(req *request.UserLoginRequest) (*loginReturn, 
 	}
 
 	// Create or get session
-	if err := database.BeginTransaction(svc.Context, svc.pool, func(tx pgx.Tx) error {
-		session, err := repo.Session.SaveOrGet(svc.Context, userCredential, tx)
+	if err := database.BeginTransaction(svc.Context, svc.pool, func(tx pgx.Tx, ctx context.Context) error {
+		session, err := repo.Session.SaveOrGet(ctx, userCredential, tx)
 		if err != nil {
 			return err
 		}
@@ -89,7 +89,7 @@ func (svc *userAuthService) Login(req *request.UserLoginRequest) (*loginReturn, 
 	}
 
 	return &loginReturn{
-		User: userCredential,
+		User:        userCredential,
 		UserSession: userSession,
 		AccessToken: accessToken,
 	}, nil

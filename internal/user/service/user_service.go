@@ -68,8 +68,8 @@ func (svc *userService) validate(req *request.UserRegisterRequest) (*user.User, 
 }
 
 type createReturn struct {
-	User *user.User
-	AccessToken    string
+	User        *user.User
+	AccessToken string
 }
 
 func (svc *userService) Create(req *request.UserRegisterRequest) (*createReturn, error) {
@@ -86,7 +86,7 @@ func (svc *userService) Create(req *request.UserRegisterRequest) (*createReturn,
 		accessToken    string
 	)
 
-	if err := database.BeginTransaction(svc.Context, svc.pool, func(tx pgx.Tx) error {
+	if err := database.BeginTransaction(svc.Context, svc.pool, func(tx pgx.Tx, ctx context.Context) error {
 		model := user.User{
 			Email:    payload.Email,
 			Name:     payload.Name,
@@ -94,13 +94,13 @@ func (svc *userService) Create(req *request.UserRegisterRequest) (*createReturn,
 		}
 
 		// Create user
-		userCreated, err := repo.User.Save(svc.Context, model, tx)
+		userCreated, err := repo.User.Save(ctx, model, tx)
 		if err != nil {
 			return err
 		}
 		userCredential = userCreated
 
-		_, err = repo.Session.SaveOrGet(svc.Context, userCredential, tx)
+		_, err = repo.Session.SaveOrGet(ctx, userCredential, tx)
 		if err != nil {
 			return err
 		}
@@ -119,7 +119,7 @@ func (svc *userService) Create(req *request.UserRegisterRequest) (*createReturn,
 	}
 
 	return &createReturn{
-		User: userCredential,
+		User:        userCredential,
 		AccessToken: accessToken,
 	}, nil
 }

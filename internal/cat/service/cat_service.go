@@ -54,7 +54,7 @@ func (svc *catService) Create(payload *request.CatCreateRequest, actorId int) (*
 	repo := svc.repo
 
 	var result *cat.Cat
-	if err := database.BeginTransaction(svc.Context, svc.pool, func(tx pgx.Tx) error {
+	if err := database.BeginTransaction(svc.Context, svc.pool, func(tx pgx.Tx, ctx context.Context) error {
 		model := cat.Cat{
 			UserId:      actorId,
 			Name:        payload.Name,
@@ -65,14 +65,14 @@ func (svc *catService) Create(payload *request.CatCreateRequest, actorId int) (*
 		}
 
 		// call Create from repository/ datastore
-		cat, err := repo.Cat.Save(svc.Context, tx, model)
+		cat, err := repo.Cat.Save(ctx, tx, model)
 
 		// if error occur, return nil for the response as well as return the error
 		if err != nil {
 			return nil
 		}
 
-		err = repo.Cat.SaveImageUrls(svc.Context, tx, cat.Id, payload.ImageUrls)
+		err = repo.Cat.SaveImageUrls(ctx, tx, cat.Id, payload.ImageUrls)
 		if err != nil {
 			return nil
 		}
@@ -91,15 +91,15 @@ func (svc *catService) Create(payload *request.CatCreateRequest, actorId int) (*
 func (svc *catService) Delete(id int) error {
 	repo := svc.repo
 
-	if err := database.BeginTransaction(svc.Context, svc.pool, func(tx pgx.Tx) error {
+	if err := database.BeginTransaction(svc.Context, svc.pool, func(tx pgx.Tx, ctx context.Context) error {
 		// Find cat
-		catFound, err := repo.Cat.FindById(svc.Context, id)
+		catFound, err := repo.Cat.FindById(ctx, id)
 		if err != nil {
 			return errs.CatErrNotFound
 		}
 
 		// Delete cat
-		err = repo.Cat.Delete(svc.Context, tx, catFound.Id)
+		err = repo.Cat.Delete(ctx, tx, catFound.Id)
 		if err != nil {
 			return err
 		}
@@ -115,9 +115,9 @@ func (svc *catService) Delete(id int) error {
 func (svc *catService) Update(p *request.CatUpdateRequest, id int) error {
 	repo := svc.repo
 
-	if err := database.BeginTransaction(svc.Context, svc.pool, func(tx pgx.Tx) error {
+	if err := database.BeginTransaction(svc.Context, svc.pool, func(tx pgx.Tx, ctx context.Context) error {
 		// Find cat
-		catFound, err := repo.Cat.FindById(svc.Context, id)
+		catFound, err := repo.Cat.FindById(ctx, id)
 		if err != nil {
 			return errs.CatErrNotFound
 		}
@@ -133,7 +133,7 @@ func (svc *catService) Update(p *request.CatUpdateRequest, id int) error {
 		}
 		if p.Sex != "" {
 			// Check requested cat match for this cat is exists
-			catMatchFound, err := repo.CatMatch.GetByCatId(svc.Context, catFound.Id)
+			catMatchFound, err := repo.CatMatch.GetByCatId(ctx, catFound.Id)
 			if err != nil {
 				return err
 			}
@@ -155,14 +155,14 @@ func (svc *catService) Update(p *request.CatUpdateRequest, id int) error {
 			payload.ImageUrls = p.ImageUrls
 
 			// Currently we always create new record instead of deleted
-			err = repo.Cat.SaveImageUrls(svc.Context, tx, payload.Id, payload.ImageUrls)
+			err = repo.Cat.SaveImageUrls(ctx, tx, payload.Id, payload.ImageUrls)
 			if err != nil {
 				return err
 			}
 		}
 
 		// Update cat
-		_, err = repo.Cat.Update(svc.Context, tx, payload)
+		_, err = repo.Cat.Update(ctx, tx, payload)
 		if err != nil {
 			return err
 		}
