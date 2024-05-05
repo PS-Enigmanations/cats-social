@@ -1,6 +1,7 @@
 package jwt
 
 import (
+	"enigmanations/cats-social/internal/session"
 	"enigmanations/cats-social/internal/user"
 	"enigmanations/cats-social/pkg/env"
 	"errors"
@@ -31,7 +32,7 @@ func GenerateAccessToken(userID uint64, credential *user.User) (string, error) {
 func GenerateSessionTokenJWT(
 	userID uint64,
 	credential *user.User,
-	session *user.UserSession,
+	session *session.Session,
 ) (string, error) {
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
 		"uid": userID,

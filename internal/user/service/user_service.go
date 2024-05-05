@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+	sessionRepository "enigmanations/cats-social/internal/session/repository"
 	"enigmanations/cats-social/internal/user"
 	"enigmanations/cats-social/internal/user/errs"
 	"enigmanations/cats-social/internal/user/repository"
@@ -23,7 +24,7 @@ type UserService interface {
 
 type UserDependency struct {
 	User    repository.UserRepository
-	Session repository.UserAuthRepository
+	Session sessionRepository.SessionRepository
 }
 
 type userService struct {

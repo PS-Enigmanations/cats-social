@@ -2,10 +2,12 @@ package service
 
 import (
 	"context"
+	"enigmanations/cats-social/internal/session"
+	"enigmanations/cats-social/internal/session/repository"
+	"enigmanations/cats-social/internal/session/request"
 	"enigmanations/cats-social/internal/user"
 	"enigmanations/cats-social/internal/user/errs"
-	"enigmanations/cats-social/internal/user/repository"
-	"enigmanations/cats-social/internal/user/request"
+	userRepository "enigmanations/cats-social/internal/user/repository"
 	"enigmanations/cats-social/pkg/bcrypt"
 	"enigmanations/cats-social/pkg/jwt"
 	"fmt"
@@ -16,37 +18,38 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
-type UserAuthService interface {
-	Login(req *request.UserLoginRequest) (*loginReturn, error)
+type SessionService interface {
+	Login(req *request.SessionLoginRequest) (*loginReturn, error)
+	GenerateAccessToken(userId int, user *user.User) (string, error)
 }
 
-type UserAuthDependency struct {
-	User    repository.UserRepository
-	Session repository.UserAuthRepository
+type SessionDependency struct {
+	Session repository.SessionRepository
+	User    userRepository.UserRepository
 }
 
-type userAuthService struct {
+type sessionService struct {
 	pool    *pgxpool.Pool
-	repo    *UserAuthDependency
+	repo    *SessionDependency
 	Context context.Context
 }
 
-func NewUserAuthService(ctx context.Context, pool *pgxpool.Pool, repo *UserAuthDependency) UserAuthService {
-	return &userAuthService{Context: ctx, pool: pool, repo: repo}
+func NewSessionService(ctx context.Context, pool *pgxpool.Pool, repo *SessionDependency) SessionService {
+	return &sessionService{Context: ctx, pool: pool, repo: repo}
 }
 
 type loginReturn struct {
 	User        *user.User
-	UserSession *user.UserSession
+	UserSession *session.Session
 	AccessToken string
 }
 
-func (svc *userAuthService) Login(req *request.UserLoginRequest) (*loginReturn, error) {
+func (svc *sessionService) Login(req *request.SessionLoginRequest) (*loginReturn, error) {
 	repo := svc.repo
 
 	var (
 		userCredential *user.User
-		userSession    *user.UserSession
+		userSession    *session.Session
 		accessToken    string
 	)
 
@@ -77,7 +80,7 @@ func (svc *userAuthService) Login(req *request.UserLoginRequest) (*loginReturn, 
 		userSession = session
 
 		// Generate access token
-		token, err := jwt.GenerateAccessToken(uint64(userSession.UserId), userCredential)
+		token, err := svc.GenerateAccessToken(session.UserId, userCredential)
 		if err != nil {
 			return fmt.Errorf("%w", err)
 		}
@@ -93,4 +96,14 @@ func (svc *userAuthService) Login(req *request.UserLoginRequest) (*loginReturn, 
 		UserSession: userSession,
 		AccessToken: accessToken,
 	}, nil
+}
+
+func (svc *sessionService) GenerateAccessToken(userId int, user *user.User) (string, error) {
+	token, err := jwt.GenerateAccessToken(uint64(userId), user)
+	if err != nil {
+		return "", fmt.Errorf("%w", err)
+	}
+
+	return token, nil
+
 }

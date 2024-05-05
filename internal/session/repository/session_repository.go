@@ -2,6 +2,7 @@ package repository
 
 import (
 	"context"
+	"enigmanations/cats-social/internal/session"
 	"enigmanations/cats-social/internal/user"
 	"enigmanations/cats-social/pkg/jwt"
 	"fmt"
@@ -11,25 +12,24 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
-type UserAuthRepository interface {
-	GetIfExists(ctx context.Context, userId int) (*user.UserSession, error)
-	Save(ctx context.Context, model *user.User, tx pgx.Tx) (*user.UserSession, error)
-	SaveOrGet(ctx context.Context, model *user.User, tx pgx.Tx) (*user.UserSession, error)
+type SessionRepository interface {
+	GetIfExists(ctx context.Context, userId int) (*session.Session, error)
+	Save(ctx context.Context, model *user.User, tx pgx.Tx) (*session.Session, error)
+	SaveOrGet(ctx context.Context, model *user.User, tx pgx.Tx) (*session.Session, error)
 }
 
-type userAuthRepositoryDB struct {
+type sessionRepositoryDB struct {
 	pool *pgxpool.Pool
 }
 
-func NewUserAuthRepository(pool *pgxpool.Pool) UserAuthRepository {
-	return &userAuthRepositoryDB{pool: pool}
+func NewUserSessionRepository(pool *pgxpool.Pool) SessionRepository {
+	return &sessionRepositoryDB{pool: pool}
 }
 
-// Create user session
-func (db *userAuthRepositoryDB) Save(ctx context.Context, model *user.User, tx pgx.Tx) (*user.UserSession, error) {
+func (db *sessionRepositoryDB) Save(ctx context.Context, model *user.User, tx pgx.Tx) (*session.Session, error) {
 	const sessionLengthSeconds = 134784000 // 1 year
 
-	var session = &user.UserSession{
+	var sessionValue = &session.Session{
 		ExpiresAt: time.Now().Add(time.Duration(sessionLengthSeconds) * time.Second),
 	}
 
@@ -49,10 +49,10 @@ func (db *userAuthRepositoryDB) Save(ctx context.Context, model *user.User, tx p
 		ctx,
 		sql,
 		token,
-		session.ExpiresAt,
+		sessionValue.ExpiresAt,
 		model.Id,
 	)
-	v := new(user.UserSession)
+	v := new(session.Session)
 	uSessionErr := userSessionRow.Scan(
 		&v.Token,
 		&v.UserId,
@@ -60,19 +60,23 @@ func (db *userAuthRepositoryDB) Save(ctx context.Context, model *user.User, tx p
 	if uSessionErr != nil {
 		return nil, fmt.Errorf("%w", uSessionErr)
 	}
-	session = v
+	sessionValue = v
 
-	return session, nil
+	return sessionValue, nil
 }
 
-func (db *userAuthRepositoryDB) GetIfExists(ctx context.Context, userId int) (*user.UserSession, error) {
+type getIfExists struct {
+	exists bool
+}
+
+func (db *sessionRepositoryDB) GetIfExists(ctx context.Context, userId int) (*session.Session, error) {
 	const sql = `
 		SELECT EXISTS (
 			SELECT s."token" from sessions s WHERE s.user_id = $1 AND deleted_at IS NULL LIMIT 1
 		);`
 
 	row := db.pool.QueryRow(ctx, sql, userId)
-	s := new(Exists)
+	s := new(getIfExists)
 	err := row.Scan(
 		&s.exists,
 	)
@@ -85,7 +89,7 @@ func (db *userAuthRepositoryDB) GetIfExists(ctx context.Context, userId int) (*u
 			SELECT s."token", s.user_id from sessions s WHERE s.user_id = $1 AND deleted_at IS NULL LIMIT 1
 		`
 		row := db.pool.QueryRow(ctx, sql, userId)
-		u := new(user.UserSession)
+		u := new(session.Session)
 		err := row.Scan(
 			&u.Token,
 			&u.UserId,
@@ -100,8 +104,8 @@ func (db *userAuthRepositoryDB) GetIfExists(ctx context.Context, userId int) (*u
 	return nil, nil
 }
 
-func (db *userAuthRepositoryDB) SaveOrGet(ctx context.Context, model *user.User, tx pgx.Tx) (*user.UserSession, error) {
-	var userSession *user.UserSession
+func (db *sessionRepositoryDB) SaveOrGet(ctx context.Context, model *user.User, tx pgx.Tx) (*session.Session, error) {
+	var userSession *session.Session
 
 	userSessionFound, _ := db.GetIfExists(ctx, model.Id)
 	if userSessionFound != nil {

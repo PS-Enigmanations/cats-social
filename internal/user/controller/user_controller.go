@@ -2,6 +2,9 @@ package controller
 
 import (
 	"encoding/json"
+	sessionRequest "enigmanations/cats-social/internal/session/request"
+	sessionResponse "enigmanations/cats-social/internal/session/response"
+	sessionService "enigmanations/cats-social/internal/session/service"
 	"enigmanations/cats-social/internal/user/errs"
 	"enigmanations/cats-social/internal/user/request"
 	"enigmanations/cats-social/internal/user/response"
@@ -20,12 +23,12 @@ type UserController interface {
 }
 
 type userController struct {
-	Service     service.UserService
-	AuthService service.UserAuthService
+	UserService    service.UserService
+	SessionService sessionService.SessionService
 }
 
-func NewUserController(svc service.UserService, authSvc service.UserAuthService) UserController {
-	return &userController{Service: svc, AuthService: authSvc}
+func NewUserController(userSvc service.UserService, sessionSvc sessionService.SessionService) UserController {
+	return &userController{UserService: userSvc, SessionService: sessionSvc}
 }
 
 func (c *userController) UserRegister(w http.ResponseWriter, r *http.Request) {
@@ -43,7 +46,7 @@ func (c *userController) UserRegister(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	userCreated, err := c.Service.Create(&reqBody)
+	userCreated, err := c.UserService.Create(&reqBody)
 	if err != nil {
 		switch {
 		case errors.Is(err, errs.UserErrEmailInvalidFormat):
@@ -75,7 +78,7 @@ func (c *userController) UserRegister(w http.ResponseWriter, r *http.Request) {
 }
 
 func (c *userController) UserLogin(w http.ResponseWriter, r *http.Request) {
-	var reqBody request.UserLoginRequest
+	var reqBody sessionRequest.SessionLoginRequest
 
 	if err := json.NewDecoder(r.Body).Decode(&reqBody); err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
@@ -95,7 +98,7 @@ func (c *userController) UserLogin(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	userLogged, err := c.AuthService.Login(&reqBody)
+	userLogged, err := c.SessionService.Login(&reqBody)
 	if err != nil {
 		switch {
 		case errors.Is(err, errs.UserErrEmailInvalidFormat):
@@ -118,7 +121,7 @@ func (c *userController) UserLogin(w http.ResponseWriter, r *http.Request) {
 	w.Header().Add("Content-Type", "application/json")
 
 	// Mapping data from service to response
-	userLoggedMappedResult := response.UserToUserLoginResponse(*userLogged.User, userLogged.AccessToken)
+	userLoggedMappedResult := sessionResponse.SessionToLoginResponse(*userLogged.User, userLogged.AccessToken)
 
 	// Marshal the response into JSON
 	jsonResp, err := json.Marshal(userLoggedMappedResult)
