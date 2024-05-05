@@ -6,7 +6,7 @@ import (
 	"enigmanations/cats-social/internal/cat/request"
 	"enigmanations/cats-social/internal/cat/response"
 	"enigmanations/cats-social/internal/cat/service"
-	"enigmanations/cats-social/internal/user"
+	"enigmanations/cats-social/internal/session"
 	"enigmanations/cats-social/util"
 	"errors"
 	"log"
@@ -40,7 +40,7 @@ func (c *catController) CatGetAllController(w http.ResponseWriter, r *http.Reque
 		log.Fatalf("Error happened in parse query. Err: %s", err)
 	}
 
-	currUser := user.GetCurrentUser(r.Context())
+	currUser := session.GetCurrentUser(r.Context())
 	cats, err := c.Service.GetAllByParams(queryParams, currUser.Uid)
 
 	// Mapping data from service to response
@@ -72,7 +72,7 @@ func (c *catController) CatCreateController(w http.ResponseWriter, r *http.Reque
 		return
 	}
 
-	currUser := user.GetCurrentUser(r.Context())
+	currUser := session.GetCurrentUser(r.Context())
 
 	// send data to service layer to further process (create record)
 	catCreated, err := c.Service.Create(&reqBody, currUser.Uid)

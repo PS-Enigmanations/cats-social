@@ -6,8 +6,8 @@ import (
 	"log"
 	"net/http"
 
-	"enigmanations/cats-social/internal/user"
-	userRepositoryInternal "enigmanations/cats-social/internal/user/repository"
+	"enigmanations/cats-social/internal/session"
+	userRepository "enigmanations/cats-social/internal/user/repository"
 	"enigmanations/cats-social/pkg/jwt"
 
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -43,7 +43,7 @@ func (m *AuthMiddleware) ProtectedHandler(next http.Handler) http.Handler {
 			return
 		}
 
-		userRepository := userRepositoryInternal.NewUserRepository(m.pool)
+		userRepository := userRepository.NewUserRepository(m.pool)
 		_, err = userRepository.Get(m.ctx, tokenData.Uid)
 		if err != nil {
 			log.Printf("Invalid token (not found on store): %v", err)
@@ -55,7 +55,7 @@ func (m *AuthMiddleware) ProtectedHandler(next http.Handler) http.Handler {
 		w.Header().Add("Authorization", fmt.Sprintf("Bearer %s", encodedToken))
 
 		// Set authenticaton context
-		ctx := user.NewAuthenticationContext(r.Context(), tokenData.Uid)
+		ctx := session.NewAuthenticationContext(r.Context(), tokenData.Uid)
 
 		// Delegate request to the given handle
 		next.ServeHTTP(w, r.WithContext(ctx))

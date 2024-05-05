@@ -6,7 +6,7 @@ import (
 	"enigmanations/cats-social/internal/cat_match/request"
 	"enigmanations/cats-social/internal/cat_match/response"
 	"enigmanations/cats-social/internal/cat_match/service"
-	"enigmanations/cats-social/internal/user"
+	"enigmanations/cats-social/internal/session"
 	"errors"
 	"log"
 	"net/http"
@@ -46,7 +46,7 @@ func (c *catMatchController) CatMatchCreate(w http.ResponseWriter, r *http.Reque
 		return
 	}
 
-	currUser := user.GetCurrentUser(r.Context())
+	currUser := session.GetCurrentUser(r.Context())
 
 	if err = c.Service.Create(&reqBody, int64(currUser.Uid)); err != nil {
 		switch {
@@ -145,7 +145,7 @@ func (c *catMatchController) CatMatchGetAll(w http.ResponseWriter, r *http.Reque
 	w.WriteHeader(http.StatusOK)
 	w.Header().Add("Content-Type", "application/json")
 
-	currUser := user.GetCurrentUser(r.Context())
+	currUser := session.GetCurrentUser(r.Context())
 	catMatches, err := c.Service.GetByIssuedOrReceiver(int(currUser.Uid))
 	if err != nil {
 		log.Fatalf("Error happened in JSON marshal. Err: %s", err)
