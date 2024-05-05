@@ -30,18 +30,18 @@ type CatMatchDependency struct {
 type catMatchService struct {
 	pool    *pgxpool.Pool
 	repo    *CatMatchDependency
-	Context context.Context
+	context context.Context
 }
 
 func NewCatMatchService(ctx context.Context, pool *pgxpool.Pool, repo *CatMatchDependency) CatMatchService {
-	return &catMatchService{pool: pool, repo: repo, Context: ctx}
+	return &catMatchService{pool: pool, repo: repo, context: ctx}
 }
 
 func (svc *catMatchService) validate(req *request.CatMatchRequest) error {
 	repo := svc.repo
 
 	// Check cat by match cat id
-	matchCatFound, err := repo.CatMatch.GetAssociationByCatId(svc.Context, int(req.MatchCatId))
+	matchCatFound, err := repo.CatMatch.GetAssociationByCatId(svc.context, int(req.MatchCatId))
 	if err != nil {
 		return errs.CatMatchErrNotFound
 	}
@@ -50,13 +50,13 @@ func (svc *catMatchService) validate(req *request.CatMatchRequest) error {
 	}
 
 	// Check user from match cat id is belong to the user
-	_, err = repo.User.Get(svc.Context, matchCatFound.UserId)
+	_, err = repo.User.Get(svc.context, matchCatFound.UserId)
 	if err != nil {
 		return errs.CatMatchErrOwnerNotFound
 	}
 
 	// Check cat by user cat id
-	userCatFound, err := repo.CatMatch.GetAssociationByCatId(svc.Context, int(req.UserCatId))
+	userCatFound, err := repo.CatMatch.GetAssociationByCatId(svc.context, int(req.UserCatId))
 	if err != nil {
 		return errs.CatMatchErrNotFound
 	}
@@ -65,7 +65,7 @@ func (svc *catMatchService) validate(req *request.CatMatchRequest) error {
 	}
 
 	// Check user from user cat id is belong to the user
-	_, err = repo.User.Get(svc.Context, userCatFound.UserId)
+	_, err = repo.User.Get(svc.context, userCatFound.UserId)
 	if err != nil {
 		return err
 	}
@@ -97,7 +97,7 @@ func (svc *catMatchService) Create(req *request.CatMatchRequest, actorId int64) 
 		return err
 	}
 
-	if err := database.BeginTransaction(svc.Context, svc.pool, func(tx pgx.Tx, ctx context.Context) error {
+	if err := database.BeginTransaction(svc.context, svc.pool, func(tx pgx.Tx, ctx context.Context) error {
 		// Create cat matches
 		model := catmatch.CatMatch{
 			IssuedBy:   actorId,
@@ -121,7 +121,7 @@ func (svc *catMatchService) Create(req *request.CatMatchRequest, actorId int64) 
 func (svc *catMatchService) Destroy(id int64) error {
 	repo := svc.repo
 
-	if err := database.BeginTransaction(svc.Context, svc.pool, func(tx pgx.Tx, ctx context.Context) error {
+	if err := database.BeginTransaction(svc.context, svc.pool, func(tx pgx.Tx, ctx context.Context) error {
 		// Destroy cat matches
 		err := repo.CatMatch.Destroy(ctx, id, tx)
 		if err != nil {
@@ -139,7 +139,7 @@ func (svc *catMatchService) Destroy(id int64) error {
 func (svc *catMatchService) Approve(matchId int) error {
 	repo := svc.repo
 
-	if err := database.BeginTransaction(svc.Context, svc.pool, func(tx pgx.Tx, ctx context.Context) error {
+	if err := database.BeginTransaction(svc.context, svc.pool, func(tx pgx.Tx, ctx context.Context) error {
 		// Get cat match
 		catMatchFound, err := repo.CatMatch.Get(ctx, matchId)
 		if err != nil {
@@ -177,7 +177,7 @@ func (svc *catMatchService) Approve(matchId int) error {
 func (svc *catMatchService) Reject(matchId int) error {
 	repo := svc.repo
 
-	if err := database.BeginTransaction(svc.Context, svc.pool, func(tx pgx.Tx, ctx context.Context) error {
+	if err := database.BeginTransaction(svc.context, svc.pool, func(tx pgx.Tx, ctx context.Context) error {
 		// Reject cat matches
 		err := repo.CatMatch.UpdateCatMatchStatus(ctx, matchId, "reject", tx)
 		if err != nil {
@@ -199,7 +199,7 @@ type getByIssueOrReceiverReturn struct {
 func (svc *catMatchService) GetByIssuedOrReceiver(matchId int) (*getByIssueOrReceiverReturn, error) {
 	repo := svc.repo
 
-	data, err := repo.CatMatch.GetByIssuedOrReceiver(svc.Context, int(matchId))
+	data, err := repo.CatMatch.GetByIssuedOrReceiver(svc.context, int(matchId))
 	if err != nil {
 		fmt.Print(err)
 		return nil, errs.CatMatchErrOwnerNotFound

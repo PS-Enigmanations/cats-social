@@ -31,11 +31,11 @@ type SessionDependency struct {
 type sessionService struct {
 	pool    *pgxpool.Pool
 	repo    *SessionDependency
-	Context context.Context
+	context context.Context
 }
 
 func NewSessionService(ctx context.Context, pool *pgxpool.Pool, repo *SessionDependency) SessionService {
-	return &sessionService{Context: ctx, pool: pool, repo: repo}
+	return &sessionService{context: ctx, pool: pool, repo: repo}
 }
 
 type loginReturn struct {
@@ -56,7 +56,7 @@ func (svc *sessionService) Login(req *request.SessionLoginRequest) (*loginReturn
 	// Check email
 	if req.Email != "" {
 		// Get user
-		userCredentialFound, err := repo.User.GetByEmail(svc.Context, req.Email)
+		userCredentialFound, err := repo.User.GetByEmail(svc.context, req.Email)
 		if err != nil {
 			return nil, errs.UserErrNotFound
 		}
@@ -72,7 +72,7 @@ func (svc *sessionService) Login(req *request.SessionLoginRequest) (*loginReturn
 	}
 
 	// Create or get session
-	if err := database.BeginTransaction(svc.Context, svc.pool, func(tx pgx.Tx, ctx context.Context) error {
+	if err := database.BeginTransaction(svc.context, svc.pool, func(tx pgx.Tx, ctx context.Context) error {
 		session, err := repo.Session.SaveOrGet(ctx, userCredential, tx)
 		if err != nil {
 			return err

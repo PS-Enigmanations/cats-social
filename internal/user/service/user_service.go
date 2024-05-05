@@ -30,11 +30,11 @@ type UserDependency struct {
 type userService struct {
 	pool    *pgxpool.Pool
 	repo    *UserDependency
-	Context context.Context
+	context context.Context
 }
 
 func NewUserService(ctx context.Context, pool *pgxpool.Pool, repo *UserDependency) UserService {
-	return &userService{Context: ctx, pool: pool, repo: repo}
+	return &userService{context: ctx, pool: pool, repo: repo}
 }
 
 func (svc *userService) validate(req *request.UserRegisterRequest) (*user.User, error) {
@@ -51,7 +51,7 @@ func (svc *userService) validate(req *request.UserRegisterRequest) (*user.User, 
 		}
 
 		// Check existing user
-		userFound, _ := repo.User.GetByEmailIfExists(svc.Context, req.Email)
+		userFound, _ := repo.User.GetByEmailIfExists(svc.context, req.Email)
 		if userFound != nil {
 			return nil, errs.UserErrEmailExist
 		}
@@ -87,7 +87,7 @@ func (svc *userService) Create(req *request.UserRegisterRequest) (*createReturn,
 		accessToken    string
 	)
 
-	if err := database.BeginTransaction(svc.Context, svc.pool, func(tx pgx.Tx, ctx context.Context) error {
+	if err := database.BeginTransaction(svc.context, svc.pool, func(tx pgx.Tx, ctx context.Context) error {
 		model := user.User{
 			Email:    payload.Email,
 			Name:     payload.Name,

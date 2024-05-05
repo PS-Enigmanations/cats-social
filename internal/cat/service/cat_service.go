@@ -33,18 +33,18 @@ type CatDependency struct {
 type catService struct {
 	repo    *CatDependency
 	pool    *pgxpool.Pool
-	Context context.Context
+	context context.Context
 }
 
 // NewService creates an API service.
 func NewCatService(ctx context.Context, pool *pgxpool.Pool, repo *CatDependency) CatService {
-	return &catService{repo: repo, pool: pool, Context: ctx}
+	return &catService{repo: repo, pool: pool, context: ctx}
 }
 
 func (svc *catService) GetAllByParams(p *request.CatGetAllQueryParams, ownerId int) ([]*cat.Cat, error) {
 	repo := svc.repo
 
-	cats, err := repo.Cat.GetAllByParams(svc.Context, p, ownerId)
+	cats, err := repo.Cat.GetAllByParams(svc.context, p, ownerId)
 	if err != nil {
 		return nil, err
 	}
@@ -56,7 +56,7 @@ func (svc *catService) Create(payload *request.CatCreateRequest, actorId int) (*
 	repo := svc.repo
 
 	var result *cat.Cat
-	if err := database.BeginTransaction(svc.Context, svc.pool, func(tx pgx.Tx, ctx context.Context) error {
+	if err := database.BeginTransaction(svc.context, svc.pool, func(tx pgx.Tx, ctx context.Context) error {
 		model := cat.Cat{
 			UserId:      actorId,
 			Name:        payload.Name,
@@ -93,7 +93,7 @@ func (svc *catService) Create(payload *request.CatCreateRequest, actorId int) (*
 func (svc *catService) Delete(id int) error {
 	repo := svc.repo
 
-	if err := database.BeginTransaction(svc.Context, svc.pool, func(tx pgx.Tx, ctx context.Context) error {
+	if err := database.BeginTransaction(svc.context, svc.pool, func(tx pgx.Tx, ctx context.Context) error {
 		// Find cat
 		catFound, err := repo.Cat.FindById(ctx, id)
 		if err != nil {
@@ -117,7 +117,7 @@ func (svc *catService) Delete(id int) error {
 func (svc *catService) Update(p *request.CatUpdateRequest, id int) error {
 	repo := svc.repo
 
-	if err := database.BeginTransaction(svc.Context, svc.pool, func(tx pgx.Tx, ctx context.Context) error {
+	if err := database.BeginTransaction(svc.context, svc.pool, func(tx pgx.Tx, ctx context.Context) error {
 		// Find cat
 		catFound, err := repo.Cat.FindById(ctx, id)
 		if err != nil {
