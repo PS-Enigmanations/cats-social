@@ -10,10 +10,10 @@ var (
 	WrongPassword   = errors.New("Wrong password")
 )
 
-type AuthError struct {
+type SessionError struct {
 	Err error
 }
 
-func (e AuthError) Error() error {
+func (e SessionError) Error() error {
 	return fmt.Errorf(e.Err.Error())
 }

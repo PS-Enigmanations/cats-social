@@ -2,6 +2,7 @@ package controller
 
 import (
 	"encoding/json"
+	sessionErrs "enigmanations/cats-social/internal/session/errs"
 	sessionRequest "enigmanations/cats-social/internal/session/request"
 	sessionResponse "enigmanations/cats-social/internal/session/response"
 	sessionService "enigmanations/cats-social/internal/session/service"
@@ -107,7 +108,7 @@ func (c *userController) UserLogin(w http.ResponseWriter, r *http.Request) {
 		case errors.Is(err, errs.UserErrNotFound):
 			http.Error(w, err.Error(), http.StatusNotFound)
 			break
-		case errors.Is(err, errs.WrongPassword):
+		case errors.Is(err, sessionErrs.WrongPassword):
 			http.Error(w, err.Error(), http.StatusBadRequest)
 			break
 		default:

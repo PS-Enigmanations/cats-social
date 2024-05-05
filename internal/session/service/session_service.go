@@ -3,10 +3,11 @@ package service
 import (
 	"context"
 	"enigmanations/cats-social/internal/session"
+	"enigmanations/cats-social/internal/session/errs"
 	"enigmanations/cats-social/internal/session/repository"
 	"enigmanations/cats-social/internal/session/request"
 	"enigmanations/cats-social/internal/user"
-	"enigmanations/cats-social/internal/user/errs"
+	userErrs "enigmanations/cats-social/internal/user/errs"
 	userRepository "enigmanations/cats-social/internal/user/repository"
 	"enigmanations/cats-social/pkg/bcrypt"
 	"enigmanations/cats-social/pkg/jwt"
@@ -58,7 +59,7 @@ func (svc *sessionService) Login(req *request.SessionLoginRequest) (*loginReturn
 		// Get user
 		userCredentialFound, err := repo.User.GetByEmail(svc.context, req.Email)
 		if err != nil {
-			return nil, errs.UserErrNotFound
+			return nil, userErrs.UserErrNotFound
 		}
 
 		userCredential = userCredentialFound
