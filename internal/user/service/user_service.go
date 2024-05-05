@@ -6,7 +6,6 @@ import (
 	"enigmanations/cats-social/internal/user/errs"
 	"enigmanations/cats-social/internal/user/repository"
 	"enigmanations/cats-social/internal/user/request"
-	"enigmanations/cats-social/internal/user/response"
 	"enigmanations/cats-social/pkg/bcrypt"
 	"enigmanations/cats-social/pkg/jwt"
 	"enigmanations/cats-social/util"
@@ -19,7 +18,7 @@ import (
 )
 
 type UserService interface {
-	Create(req *request.UserRegisterRequest) (*response.UserCreateResponse, error)
+	Create(req *request.UserRegisterRequest) (*createReturn, error)
 }
 
 type UserDependency struct {
@@ -68,7 +67,12 @@ func (svc *userService) validate(req *request.UserRegisterRequest) (*user.User, 
 	return payload, nil
 }
 
-func (svc *userService) Create(req *request.UserRegisterRequest) (*response.UserCreateResponse, error) {
+type createReturn struct {
+	User *user.User
+	AccessToken    string
+}
+
+func (svc *userService) Create(req *request.UserRegisterRequest) (*createReturn, error) {
 	repo := svc.repo
 
 	// Validate first
@@ -114,5 +118,8 @@ func (svc *userService) Create(req *request.UserRegisterRequest) (*response.User
 		return nil, fmt.Errorf("transaction %w", err)
 	}
 
-	return response.UserToUserCreateResponse(*userCredential, accessToken), nil
+	return &createReturn{
+		User: userCredential,
+		AccessToken: accessToken,
+	}, nil
 }

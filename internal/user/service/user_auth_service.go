@@ -6,7 +6,6 @@ import (
 	"enigmanations/cats-social/internal/user/errs"
 	"enigmanations/cats-social/internal/user/repository"
 	"enigmanations/cats-social/internal/user/request"
-	"enigmanations/cats-social/internal/user/response"
 	"enigmanations/cats-social/pkg/bcrypt"
 	"enigmanations/cats-social/pkg/jwt"
 	"fmt"
@@ -18,7 +17,7 @@ import (
 )
 
 type UserAuthService interface {
-	Login(req *request.UserLoginRequest) (*response.UserLoginResponse, error)
+	Login(req *request.UserLoginRequest) (*loginReturn, error)
 }
 
 type UserAuthDependency struct {
@@ -36,7 +35,13 @@ func NewUserAuthService(ctx context.Context, pool *pgxpool.Pool, repo *UserAuthD
 	return &userAuthService{Context: ctx, pool: pool, repo: repo}
 }
 
-func (svc *userAuthService) Login(req *request.UserLoginRequest) (*response.UserLoginResponse, error) {
+type loginReturn struct {
+	User *user.User
+	UserSession *user.UserSession
+	AccessToken    string
+}
+
+func (svc *userAuthService) Login(req *request.UserLoginRequest) (*loginReturn, error) {
 	repo := svc.repo
 
 	var (
@@ -83,5 +88,9 @@ func (svc *userAuthService) Login(req *request.UserLoginRequest) (*response.User
 		return nil, fmt.Errorf("%w", err)
 	}
 
-	return response.UserToUserLoginResponse(*userCredential, accessToken), nil
+	return &loginReturn{
+		User: userCredential,
+		UserSession: userSession,
+		AccessToken: accessToken,
+	}, nil
 }

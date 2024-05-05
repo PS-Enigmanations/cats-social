@@ -6,7 +6,6 @@ import (
 	"enigmanations/cats-social/internal/cat_match/errs"
 	"enigmanations/cats-social/internal/cat_match/repository"
 	"enigmanations/cats-social/internal/cat_match/request"
-	"enigmanations/cats-social/internal/cat_match/response"
 	userRepository "enigmanations/cats-social/internal/user/repository"
 	"enigmanations/cats-social/pkg/database"
 	"fmt"
@@ -21,7 +20,7 @@ type CatMatchService interface {
 	Approve(matchId int) error
 	Reject(matchId int) error
 	Destroy(id int64) error
-	GetByIssuedOrReceiver(matchId int) (*response.CatGetAllResponse, error)
+	GetByIssuedOrReceiver(matchId int) (*getByIssueOrReceiverReturn, error)
 }
 
 type CatMatchDependency struct {
@@ -193,7 +192,11 @@ func (svc *catMatchService) Reject(matchId int) error {
 	return nil
 }
 
-func (svc *catMatchService) GetByIssuedOrReceiver(matchId int) (*response.CatGetAllResponse, error) {
+type getByIssueOrReceiverReturn struct {
+	CatMatches []*catmatch.CatMatchValue
+}
+
+func (svc *catMatchService) GetByIssuedOrReceiver(matchId int) (*getByIssueOrReceiverReturn, error) {
 	repo := svc.repo
 
 	data, err := repo.CatMatch.GetByIssuedOrReceiver(svc.Context, int(matchId))
@@ -202,6 +205,7 @@ func (svc *catMatchService) GetByIssuedOrReceiver(matchId int) (*response.CatGet
 		return nil, errs.CatMatchErrOwnerNotFound
 	}
 
-	catMatchShows := response.ToCatMatchShows(data)
-	return response.CatToCatGetAllResponse(catMatchShows), nil
+	return &getByIssueOrReceiverReturn{
+		CatMatches: data,
+	}, nil
 }

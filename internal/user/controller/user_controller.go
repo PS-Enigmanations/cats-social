@@ -4,11 +4,12 @@ import (
 	"encoding/json"
 	"enigmanations/cats-social/internal/user/errs"
 	"enigmanations/cats-social/internal/user/request"
+	"enigmanations/cats-social/internal/user/response"
 	"enigmanations/cats-social/internal/user/service"
+	"enigmanations/cats-social/util"
 	"errors"
 	"log"
 	"net/http"
-	"regexp"
 
 	"github.com/go-playground/validator"
 )
@@ -42,7 +43,7 @@ func (c *userController) UserRegister(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	result, err := c.Service.Create(&reqBody)
+	userCreated, err := c.Service.Create(&reqBody)
 	if err != nil {
 		switch {
 		case errors.Is(err, errs.UserErrEmailInvalidFormat):
@@ -61,7 +62,11 @@ func (c *userController) UserRegister(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusCreated)
 	w.Header().Add("Content-Type", "application/json")
 
-	jsonResp, err := json.Marshal(result)
+	// Mapping data from service to response
+	userCreatedMappedResult := response.UserToUserCreateResponse(*userCreated.User, userCreated.AccessToken)
+
+	// Marshal the response into JSON
+	jsonResp, err := json.Marshal(userCreatedMappedResult)
 	if err != nil {
 		log.Fatalf("Error happened in JSON marshal. Err: %s", err)
 	}
@@ -84,15 +89,13 @@ func (c *userController) UserLogin(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	emailPattern := `^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$`
-	regex := regexp.MustCompile(emailPattern)
-
-	if !regex.MatchString(reqBody.Email) {
+	// Validate email format
+	if !util.IsEmail(reqBody.Email) {
 		http.Error(w, "Invalid email format", http.StatusBadRequest)
 		return
 	}
 
-	result, err := c.AuthService.Login(&reqBody)
+	userLogged, err := c.AuthService.Login(&reqBody)
 	if err != nil {
 		switch {
 		case errors.Is(err, errs.UserErrEmailInvalidFormat):
@@ -114,7 +117,11 @@ func (c *userController) UserLogin(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusOK)
 	w.Header().Add("Content-Type", "application/json")
 
-	jsonResp, err := json.Marshal(result)
+	// Mapping data from service to response
+	userLoggedMappedResult := response.UserToUserLoginResponse(*userLogged.User, userLogged.AccessToken)
+
+	// Marshal the response into JSON
+	jsonResp, err := json.Marshal(userLoggedMappedResult)
 	if err != nil {
 		log.Fatalf("Error happened in JSON marshal. Err: %s", err)
 	}

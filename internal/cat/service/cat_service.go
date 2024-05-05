@@ -8,7 +8,6 @@ import (
 	"enigmanations/cats-social/internal/cat/errs"
 	"enigmanations/cats-social/internal/cat/repository"
 	"enigmanations/cats-social/internal/cat/request"
-	"enigmanations/cats-social/internal/cat/response"
 	catMatchRepository "enigmanations/cats-social/internal/cat_match/repository"
 
 	"enigmanations/cats-social/pkg/database"
@@ -18,8 +17,8 @@ import (
 )
 
 type CatService interface {
-	GetAllByParams(p *request.CatGetAllQueryParams, ownerId int) (*response.CatGetAllResponse, error)
-	Create(p *request.CatCreateRequest, actorId int) (*response.CatCreateResponse, error)
+	GetAllByParams(p *request.CatGetAllQueryParams, ownerId int) ([]*cat.Cat, error)
+	Create(p *request.CatCreateRequest, actorId int) (*cat.Cat, error)
 	Update(p *request.CatUpdateRequest, id int) error
 	Delete(id int) error
 }
@@ -40,24 +39,21 @@ func NewCatService(ctx context.Context, pool *pgxpool.Pool, repo *CatDependency)
 	return &catService{repo: repo, pool: pool, Context: ctx}
 }
 
-func (svc *catService) GetAllByParams(p *request.CatGetAllQueryParams, ownerId int) (*response.CatGetAllResponse, error) {
+func (svc *catService) GetAllByParams(p *request.CatGetAllQueryParams, ownerId int) ([]*cat.Cat, error) {
 	repo := svc.repo
 
 	cats, err := repo.Cat.GetAllByParams(svc.Context, p, ownerId)
-
 	if err != nil {
 		return nil, err
 	}
 
-	catShows := response.ToCatShows(cats)
-	return response.CatToCatGetAllResponse(catShows), nil
+	return cats, nil
 }
 
-func (svc *catService) Create(payload *request.CatCreateRequest, actorId int) (*response.CatCreateResponse, error) {
+func (svc *catService) Create(payload *request.CatCreateRequest, actorId int) (*cat.Cat, error) {
 	repo := svc.repo
 
-	var result *response.CatCreateResponse
-
+	var result *cat.Cat
 	if err := database.BeginTransaction(svc.Context, svc.pool, func(tx pgx.Tx) error {
 		model := cat.Cat{
 			UserId:      actorId,
@@ -82,7 +78,7 @@ func (svc *catService) Create(payload *request.CatCreateRequest, actorId int) (*
 		}
 
 		cat.ImageUrls = payload.ImageUrls
-		result = response.CatToCatCreateResponse(*cat)
+		result = cat
 
 		return nil
 	}); err != nil {

@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"enigmanations/cats-social/internal/cat/errs"
 	"enigmanations/cats-social/internal/cat/request"
+	"enigmanations/cats-social/internal/cat/response"
 	"enigmanations/cats-social/internal/cat/service"
 	"enigmanations/cats-social/internal/user"
 	"enigmanations/cats-social/util"
@@ -38,13 +39,21 @@ func (c *catController) CatGetAllController(w http.ResponseWriter, r *http.Reque
 	if err != nil {
 		log.Fatalf("Error happened in parse query. Err: %s", err)
 	}
+
 	currUser := user.GetCurrentUser(r.Context())
 	cats, err := c.Service.GetAllByParams(queryParams, currUser.Uid)
-	jsonResp, err := json.Marshal(cats)
+
+	// Mapping data from service to response
+	catShows := response.ToCatShows(cats)
+	catMappedResults := response.CatToCatGetAllResponse(catShows)
+
+	// Marshal the response into JSON
+	jsonResp, err := json.Marshal(catMappedResults)
 	if err != nil {
 		log.Fatalf("Error happened in JSON marshal. Err: %s", err)
 	}
 	w.Write(jsonResp)
+
 	return
 }
 
@@ -66,7 +75,7 @@ func (c *catController) CatCreateController(w http.ResponseWriter, r *http.Reque
 	currUser := user.GetCurrentUser(r.Context())
 
 	// send data to service layer to further process (create record)
-	cat, err := c.Service.Create(&reqBody, currUser.Uid)
+	catCreated, err := c.Service.Create(&reqBody, currUser.Uid)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
@@ -75,7 +84,11 @@ func (c *catController) CatCreateController(w http.ResponseWriter, r *http.Reque
 	w.WriteHeader(http.StatusCreated)
 	w.Header().Add("Content-Type", "application/json")
 
-	jsonResp, err := json.Marshal(cat)
+	// Mapping data from service to response
+	catCreatedMappedResult := response.CatToCatCreateResponse(*catCreated)
+
+	// Marshal the response into JSON
+	jsonResp, err := json.Marshal(catCreatedMappedResult)
 	if err != nil {
 		log.Fatalf("Error happened in JSON marshal. Err: %s", err)
 	}
