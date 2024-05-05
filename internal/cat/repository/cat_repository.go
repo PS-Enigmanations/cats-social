@@ -14,15 +14,11 @@ import (
 )
 
 type CatRepository interface {
-	// Cat
 	GetAllByParams(ctx context.Context, params *request.CatGetAllQueryParams, ownerId int) ([]*cat.Cat, error)
 	FindById(ctx context.Context, catId int) (*cat.Cat, error)
 	Save(ctx context.Context, tx pgx.Tx, model cat.Cat) (*cat.Cat, error)
 	Update(ctx context.Context, tx pgx.Tx, model cat.Cat) (*cat.Cat, error)
 	Delete(ctx context.Context, tx pgx.Tx, catId int) error
-	// Cat images
-	SaveImageUrls(ctx context.Context, tx pgx.Tx, catId int, urls []string) error
-	DeleteImageUrls(ctx context.Context, tx pgx.Tx, catId int) error
 }
 
 type Database struct {
@@ -267,38 +263,12 @@ func (db *Database) Update(ctx context.Context, tx pgx.Tx, model cat.Cat) (*cat.
 	return c, nil
 }
 
-func (db *Database) SaveImageUrls(ctx context.Context, tx pgx.Tx, catId int, urls []string) error {
-	const sql = `INSERT into cat_images
-		("cat_id", "url")
-		VALUES ($1, $2);`
-
-	for _, url := range urls {
-		_, err := tx.Exec(ctx, sql, catId, url)
-		if err != nil {
-			return fmt.Errorf("SaveImageUrls %w", err)
-		}
-	}
-
-	return nil
-}
-
 func (db *Database) Delete(ctx context.Context, tx pgx.Tx, catId int) error {
 	const sql = `UPDATE cats SET deleted_at = NOW() WHERE id = $1`
 
 	_, err := tx.Exec(ctx, sql, catId)
 	if err != nil {
 		return fmt.Errorf("Delete %w", err)
-	}
-
-	return nil
-}
-
-func (db *Database) DeleteImageUrls(ctx context.Context, tx pgx.Tx, catId int) error {
-	const sql = `DELETE FROM cat_images WHERE cat_id = $1`
-
-	_, err := tx.Exec(ctx, sql, catId)
-	if err != nil {
-		return fmt.Errorf("Delete Image Urls %w", err)
 	}
 
 	return nil

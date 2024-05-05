@@ -8,6 +8,7 @@ import (
 	"enigmanations/cats-social/internal/cat/errs"
 	"enigmanations/cats-social/internal/cat/repository"
 	"enigmanations/cats-social/internal/cat/request"
+	catImageRepository "enigmanations/cats-social/internal/cat_image/repository"
 	catMatchRepository "enigmanations/cats-social/internal/cat_match/repository"
 
 	"enigmanations/cats-social/pkg/database"
@@ -25,6 +26,7 @@ type CatService interface {
 
 type CatDependency struct {
 	Cat      repository.CatRepository
+	CatImage catImageRepository.CatImageRepository
 	CatMatch catMatchRepository.CatMatchRepository
 }
 
@@ -72,7 +74,7 @@ func (svc *catService) Create(payload *request.CatCreateRequest, actorId int) (*
 			return nil
 		}
 
-		err = repo.Cat.SaveImageUrls(ctx, tx, cat.Id, payload.ImageUrls)
+		err = repo.CatImage.SaveImageUrls(ctx, tx, cat.Id, payload.ImageUrls)
 		if err != nil {
 			return nil
 		}
@@ -155,7 +157,7 @@ func (svc *catService) Update(p *request.CatUpdateRequest, id int) error {
 			payload.ImageUrls = p.ImageUrls
 
 			// Currently we always create new record instead of deleted
-			err = repo.Cat.SaveImageUrls(ctx, tx, payload.Id, payload.ImageUrls)
+			err = repo.CatImage.SaveImageUrls(ctx, tx, payload.Id, payload.ImageUrls)
 			if err != nil {
 				return err
 			}

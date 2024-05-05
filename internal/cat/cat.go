@@ -1,6 +1,9 @@
 package cat
 
-import "time"
+import (
+	catimage "enigmanations/cats-social/internal/cat_image"
+	"time"
+)
 
 type Cat struct {
 	Id          int       `json:"id"`
@@ -15,6 +18,9 @@ type Cat struct {
 	CreatedAt   time.Time `json:"created_at"`
 	UpdatedAt   time.Time `json:"updated_at"`
 	DeletedAt   time.Time `json:"deleted_at"`
+
+	// Association
+	CatImages []*catimage.CatImage
 }
 
 type Race string
