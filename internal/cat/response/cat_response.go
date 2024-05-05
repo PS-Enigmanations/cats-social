@@ -2,7 +2,6 @@ package response
 
 import (
 	"enigmanations/cats-social/internal/cat"
-	"enigmanations/cats-social/pkg/structure"
 	"time"
 )
 
@@ -38,9 +37,17 @@ func CatToCatGetAllResponse(data CatShows) *CatGetAllResponse {
 func ToCatShows(c []*cat.Cat) CatShows {
 	list := make(CatShows, len(c))
 	for i, item := range c {
-		showItem := new(CatShow)
-		structure.Copy(item, showItem)
-		list[i] = *showItem
+		list[i] = CatShow{
+			Id:          item.Id,
+			Name:        item.Name,
+			Race:        string(item.Race),
+			Sex:         string(item.Sex),
+			AgeInMonth:  item.AgeInMonth,
+			ImageUrls:   item.ImageUrls,
+			HasMatched:  item.HasMatched,
+			Description: item.Description,
+			CreatedAt:   item.CreatedAt,
+		}
 	}
 
 	return list
