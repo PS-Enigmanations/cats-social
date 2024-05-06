@@ -1,0 +1,19 @@
+     checks.........................: 99.23% ✓ 3235       ✗ 25
+     http_req_duration..............: avg=54.9ms   min=3.19ms  med=20.33ms  max=454.93ms p(95)=389.1ms  p(99)=404.14ms
+       { expected_response:true }...: avg=56.13ms  min=3.19ms  med=20.16ms  max=454.93ms p(95)=389.33ms p(99)=404.2ms
+
+     checks.........................: 99.23% ✓ 6470       ✗ 50
+     http_req_duration..............: avg=103.53ms min=1.71ms  med=38.14ms max=817.03ms p(95)=743.14ms p(99)=749.29ms
+       { expected_response:true }...: avg=105.37ms min=1.71ms  med=37.62ms max=817.03ms p(95)=743.42ms p(99)=749.4ms
+
+     checks.........................: 99.23% ✓ 12940      ✗ 100
+     http_req_duration..............: avg=213.23ms min=4.88ms med=77.23ms max=1.74s   p(95)=1.49s   p(99)=1.52s
+       { expected_response:true }...: avg=217.33ms min=4.88ms med=77.04ms max=1.74s   p(95)=1.49s   p(99)=1.52s
+
+     checks.........................: 99.23% ✓ 19410      ✗ 150
+     http_req_duration..............: avg=414.41ms min=2.23ms med=166.48ms max=2.98s    p(95)=2.84s    p(99)=2.89s
+       { expected_response:true }...: avg=421.25ms min=2.23ms med=163.32ms max=2.98s    p(95)=2.84s    p(99)=2.89s
+
+     checks.........................: 99.22% ✓ 38697      ✗ 303
+     http_req_duration..............: avg=770.59ms min=0s     med=305.99ms max=5.73s    p(95)=5.55s    p(99)=5.63s
+       { expected_response:true }...: avg=777.3ms  min=8.69ms med=303.24ms max=5.73s    p(95)=5.56s    p(99)=5.63s

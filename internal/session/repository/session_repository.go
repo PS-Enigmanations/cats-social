@@ -8,14 +8,13 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
 type SessionRepository interface {
 	GetIfExists(ctx context.Context, userId int) (*session.Session, error)
-	Save(ctx context.Context, model *user.User, tx pgx.Tx) (*session.Session, error)
-	SaveOrGet(ctx context.Context, model *user.User, tx pgx.Tx) (*session.Session, error)
+	Save(ctx context.Context, model *user.User) (*session.Session, error)
+	SaveOrGet(ctx context.Context, model *user.User) (*session.Session, error)
 }
 
 type sessionRepositoryDB struct {
@@ -26,7 +25,7 @@ func NewUserSessionRepository(pool *pgxpool.Pool) SessionRepository {
 	return &sessionRepositoryDB{pool: pool}
 }
 
-func (db *sessionRepositoryDB) Save(ctx context.Context, model *user.User, tx pgx.Tx) (*session.Session, error) {
+func (db *sessionRepositoryDB) Save(ctx context.Context, model *user.User) (*session.Session, error) {
 	const sessionLengthSeconds = 134784000 // 1 year
 
 	var sessionValue = &session.Session{
@@ -45,7 +44,7 @@ func (db *sessionRepositoryDB) Save(ctx context.Context, model *user.User, tx pg
 		return nil, fmt.Errorf("%w", err)
 	}
 
-	userSessionRow := tx.QueryRow(
+	userSessionRow := db.pool.QueryRow(
 		ctx,
 		sql,
 		token,
@@ -104,14 +103,14 @@ func (db *sessionRepositoryDB) GetIfExists(ctx context.Context, userId int) (*se
 	return nil, nil
 }
 
-func (db *sessionRepositoryDB) SaveOrGet(ctx context.Context, model *user.User, tx pgx.Tx) (*session.Session, error) {
+func (db *sessionRepositoryDB) SaveOrGet(ctx context.Context, model *user.User) (*session.Session, error) {
 	var userSession *session.Session
 
 	userSessionFound, _ := db.GetIfExists(ctx, model.Id)
 	if userSessionFound != nil {
 		userSession = userSessionFound
 	} else {
-		userSessionCreated, err := db.Save(ctx, model, tx)
+		userSessionCreated, err := db.Save(ctx, model)
 		if err != nil {
 			return nil, err
 		}

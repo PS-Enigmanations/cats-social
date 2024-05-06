@@ -13,9 +13,6 @@ import (
 	"enigmanations/cats-social/pkg/jwt"
 	"fmt"
 
-	"enigmanations/cats-social/pkg/database"
-
-	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
@@ -72,25 +69,19 @@ func (svc *sessionService) Login(req *request.SessionLoginRequest) (*loginReturn
 		}
 	}
 
-	// Create or get session
-	if err := database.BeginTransaction(svc.context, svc.pool, func(tx pgx.Tx, ctx context.Context) error {
-		session, err := repo.Session.SaveOrGet(ctx, userCredential, tx)
-		if err != nil {
-			return err
-		}
-		userSession = session
-
-		// Generate access token
-		token, err := svc.GenerateAccessToken(session.UserId, userCredential)
-		if err != nil {
-			return fmt.Errorf("%w", err)
-		}
-
-		accessToken = token
-		return nil
-	}); err != nil {
-		return nil, fmt.Errorf("%w", err)
+	session, err := repo.Session.SaveOrGet(svc.context, userCredential)
+	if err != nil {
+		return nil, err
 	}
+	userSession = session
+
+	// Generate access token
+	token, err := svc.GenerateAccessToken(session.UserId, userCredential)
+	if err != nil {
+		return nil, err
+	}
+
+	accessToken = token
 
 	return &loginReturn{
 		User:        userCredential,

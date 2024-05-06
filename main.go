@@ -14,7 +14,6 @@ import (
 	routes "enigmanations/cats-social/router"
 
 	"github.com/bmizerany/pat"
-	"github.com/jackc/pgx/v5/pgxpool"
 )
 
 func main() {
@@ -25,8 +24,31 @@ func main() {
 	ctx := context.Background()
 
 	// Connect to the database
-	pool := initDatabase(cfg, ctx)
+	//pgUrl := `postgres://%s:%s@%s:%d/%s?%s`
+	pgUrl := `postgres://%s:%s@%s:%d/%s?%s&pool_max_conns=%d`
+	pgUrl = fmt.Sprintf(pgUrl,
+		cfg.DBUsername,
+		cfg.DBPass,
+		cfg.DBHost,
+		cfg.DBPort,
+		cfg.DBName,
+		cfg.DBParams,
+		32,
+	)
+
+	pool, err := database.NewPGXPool(ctx, pgUrl, &database.PGXStdLogger{
+		Logger: slog.Default(),
+	})
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Unable to connect to database: %v\n", err)
+		os.Exit(1)
+	}
 	defer pool.Close()
+
+	// Check reachability
+	if _, err = pool.Exec(ctx, `SELECT 1`); err != nil {
+		fmt.Errorf("pool.Exec() error: %v", err)
+	}
 
 	// Prepare middleware
 	middleware := middleware.RegisterMiddleware(ctx, pool)
@@ -41,32 +63,4 @@ func main() {
 	appServeAddr := ":" + fmt.Sprint(cfg.AppPort)
 	fmt.Printf("Serving on http://localhost:%s\n", fmt.Sprint(cfg.AppPort))
 	log.Fatalf("%v", http.ListenAndServe(appServeAddr, router))
-}
-
-func initDatabase(cfg *config.Configuration, ctx context.Context) *pgxpool.Pool {
-	pgUrl := `postgres://%s:%s@%s:%d/%s?%s&pool_max_conns=%d`
-	pgUrl = fmt.Sprintf(pgUrl,
-		cfg.DBUsername,
-		cfg.DBPass,
-		cfg.DBHost,
-		cfg.DBPort,
-		cfg.DBName,
-		cfg.DBParams,
-		32,
-	)
-
-	pgPool, err := database.NewPGXPool(ctx, pgUrl, &database.PGXStdLogger{
-		Logger: slog.Default(),
-	})
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "Unable to connect to database: %v\n", err)
-		os.Exit(1)
-	}
-
-	// Check reachability
-	if _, err = pgPool.Exec(ctx, `SELECT 1`); err != nil {
-		fmt.Errorf("pool.Exec() error: %v", err)
-	}
-
-	return pgPool
 }

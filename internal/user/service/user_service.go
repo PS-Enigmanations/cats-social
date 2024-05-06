@@ -10,11 +10,7 @@ import (
 	"enigmanations/cats-social/pkg/bcrypt"
 	"enigmanations/cats-social/pkg/jwt"
 	"enigmanations/cats-social/util"
-	"fmt"
 
-	"enigmanations/cats-social/pkg/database"
-
-	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
@@ -87,37 +83,31 @@ func (svc *userService) Create(req *request.UserRegisterRequest) (*createReturn,
 		accessToken    string
 	)
 
-	if err := database.BeginTransaction(svc.context, svc.pool, func(tx pgx.Tx, ctx context.Context) error {
-		model := user.User{
-			Email:    payload.Email,
-			Name:     payload.Name,
-			Password: payload.Password,
-		}
-
-		// Create user
-		userCreated, err := repo.User.Save(ctx, model, tx)
-		if err != nil {
-			return err
-		}
-		userCredential = userCreated
-
-		_, err = repo.Session.SaveOrGet(ctx, userCredential, tx)
-		if err != nil {
-			return err
-		}
-
-		// Generate access token
-		token, err := jwt.GenerateAccessToken(uint64(userCredential.Id), userCredential)
-		if err != nil {
-			return fmt.Errorf("%w", err)
-		}
-
-		accessToken = token
-
-		return nil
-	}); err != nil {
-		return nil, fmt.Errorf("transaction %w", err)
+	model := user.User{
+		Email:    payload.Email,
+		Name:     payload.Name,
+		Password: payload.Password,
 	}
+
+	// Create user
+	userCreated, err := repo.User.Save(svc.context, model)
+	if err != nil {
+		return nil, err
+	}
+	userCredential = userCreated
+
+	_, err = repo.Session.SaveOrGet(svc.context, userCredential)
+	if err != nil {
+		return nil, err
+	}
+
+	// Generate access token
+	token, err := jwt.GenerateAccessToken(uint64(userCredential.Id), userCredential)
+	if err != nil {
+		return nil, err
+	}
+
+	accessToken = token
 
 	return &createReturn{
 		User:        userCredential,

@@ -259,7 +259,7 @@ export function TestDeleteManageCatMatch(config, user, user2, tags = {}) {
 
   generateCatMatch(config, currentFeature, headers, {
     Authorization: `Bearer ${user2.accessToken}`,
-  }, tags);
+  }, tags, true);
 
   currentTest = 'get all match cats';
   res = testGet(getRoute, {}, headers, tags);
@@ -318,7 +318,7 @@ export function TestDeleteManageCatMatch(config, user, user2, tags = {}) {
  * @param {Object} otherUserHeader 
  * @param {Object} tags 
  */
-function generateCatMatch(config, currentFeature, userHeader, otherUserHeader, tags) {
+function generateCatMatch(config, currentFeature, userHeader, otherUserHeader, tags, generateByUser = false) {
   // eslint-disable-next-line no-undef
   const route = `${__ENV.BASE_URL}/v1/cat/match`;
   // eslint-disable-next-line no-undef
@@ -334,7 +334,7 @@ function generateCatMatch(config, currentFeature, userHeader, otherUserHeader, t
     [`${currentTest} should return 200`]: (r) => r.status === 200,
   }, { owned: true, otherUserHeader });
   /** @type {Cat[]} */
-  const notOwnedCats = res.json().data;
+  let notOwnedCats = res.json().data;
   if (notOwnedCats.length === 0) {
     for (let i = 0; i < 2; i++) {
       const positivePayload = {
@@ -351,7 +351,15 @@ function generateCatMatch(config, currentFeature, userHeader, otherUserHeader, t
         [`${currentTest} should return 201`]: (r) => r.status === 201,
       }, Object.assign(positivePayload, { otherUserHeader }));
     }
+    let currentTest = 'get all cats not owned';
+    let res = testGet(getRoute, { owned: true, limit: 1000, offset: 0 }, otherUserHeader, tags);
+    assert(res, currentFeature, config, {
+      [`${currentTest} should return 200`]: (r) => r.status === 200,
+    }, { owned: true, otherUserHeader });
+    /** @type {Cat[]} */
+    notOwnedCats = res.json().data;
   }
+  notOwnedCats = notOwnedCats.filter((cat) => cat.hasMatched === false)
 
 
   currentTest = 'get all cats that is owned';
@@ -360,20 +368,37 @@ function generateCatMatch(config, currentFeature, userHeader, otherUserHeader, t
     [`${currentTest} should return 200`]: (r) => r.status === 200,
   }, { owned: true, limit: 1000, offset: 0, userHeader });
   /** @type {Cat[]} */
-  const ownedCats = res.json().data;
+  let ownedCats = res.json().data;
+  ownedCats = ownedCats.filter((cat) => cat.hasMatched === false)
+  let positivePayload
+  if (!generateByUser) {
+    currentTest = 'match a new cat';
+    const notHasMatchedNotOwnedCat = notOwnedCats.filter((cat) => cat.hasMatched === false && cat.sex == matchCatGender)
+    const notHasMatchedOwnedCat = ownedCats.filter((cat) => cat.hasMatched === false && cat.sex == userCatGender)
+    positivePayload = {
+      matchCatId: notHasMatchedOwnedCat[generateRandomNumber(0, notHasMatchedOwnedCat.length - 1)].id,
+      userCatId: notHasMatchedNotOwnedCat[generateRandomNumber(0, notHasMatchedNotOwnedCat.length - 1)].id,
+      message: 'Lorem ipsum dolor sit amet, consectetur adipiscing elit.',
+    };
+    res = testPostJson(route, positivePayload, otherUserHeader, tags);
+    assert(res, currentFeature, config, {
+      [`${currentTest} should return 201`]: (r) => r.status === 201,
+    }, positivePayload);
+  } else {
+    currentTest = 'match a new cat';
+    const notHasMatchedNotOwnedCat = notOwnedCats.filter((cat) => cat.hasMatched === false && cat.sex == matchCatGender)
+    const notHasMatchedOwnedCat = ownedCats.filter((cat) => cat.hasMatched === false && cat.sex == userCatGender)
+    positivePayload = {
+      matchCatId: notHasMatchedNotOwnedCat[generateRandomNumber(0, notHasMatchedNotOwnedCat.length - 1)].id,
+      userCatId: notHasMatchedOwnedCat[generateRandomNumber(0, notHasMatchedOwnedCat.length - 1)].id,
+      message: 'Lorem ipsum dolor sit amet, consectetur adipiscing elit.',
+    };
+    res = testPostJson(route, positivePayload, userHeader, tags);
+    assert(res, currentFeature, config, {
+      [`${currentTest} should return 201`]: (r) => r.status === 201,
+    }, positivePayload);
 
-  currentTest = 'match a new cat';
-  const notHasMatchedNotOwnedCat = notOwnedCats.filter((cat) => cat.hasMatched === false && cat.sex == matchCatGender)
-  const notHasMatchedOwnedCat = ownedCats.filter((cat) => cat.hasMatched === false && cat.sex == userCatGender)
-  const positivePayload = {
-    matchCatId: notHasMatchedNotOwnedCat[generateRandomNumber(0, notHasMatchedNotOwnedCat.length - 1)].id,
-    userCatId: notHasMatchedOwnedCat[generateRandomNumber(0, notHasMatchedOwnedCat.length - 1)].id,
-    message: 'Lorem ipsum dolor sit amet, consectetur adipiscing elit.',
-  };
-  res = testPostJson(route, positivePayload, otherUserHeader, tags);
-  assert(res, currentFeature, config, {
-    [`${currentTest} should return 201`]: (r) => r.status === 201,
-  }, positivePayload);
+  }
 
   return [ownedCats, notOwnedCats, positivePayload]
 }
@@ -422,14 +447,13 @@ export function TestPostManageCatApprove(config, user, user2, tags = {}) {
   }
   generateCatMatch(config, currentFeature, headers, {
     Authorization: `Bearer ${user2.accessToken}`,
-  }, headers, tags);
+  }, tags);
 
   currentTest = 'get all match cats';
   res = testGet(getRoute, {}, headers, tags);
   assert(res, currentFeature, config, {
     [`${currentTest} should return 200`]: (r) => r.status === 200,
   });
-
   let userCatMatch
   userCatMatch = res.json().data.find(
     /** @param {CatMatch} match */
@@ -441,7 +465,7 @@ export function TestPostManageCatApprove(config, user, user2, tags = {}) {
   res = testPostJson(route, {
     matchId: userCatMatch.id,
   }, headers, tags);
-  let positivePayloadPassAssertTest = assert(res, currentFeature, config, {
+  assert(res, currentFeature, config, {
     [`${currentTest} should return something`]: (r) => r.status
   }, {
     matchId: userCatMatch.id,
@@ -450,7 +474,7 @@ export function TestPostManageCatApprove(config, user, user2, tags = {}) {
   if (!config.POSITIVE_CASE) {
     currentTest = 'get all match cats';
     res = testGet(getRoute, {}, headers, tags);
-    positivePayloadPassAssertTest = assert(res, currentFeature, config, {
+    assert(res, currentFeature, config, {
       [`'${currentTest} should return 200`]: (r) => r.status === 200,
       [`'${currentTest} should not have approved match request`]: (r) => {
         try {
@@ -462,7 +486,7 @@ export function TestPostManageCatApprove(config, user, user2, tags = {}) {
     }, {});
   }
 
-  if (!positivePayloadPassAssertTest) return null;
+  // if (!positivePayloadPassAssertTest) return null;
 }
 
 

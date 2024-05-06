@@ -1,6 +1,11 @@
+
 .PHONY: run_debug
 run_debug:
 	DEBUG_ALL=true k6 run script.js
+
+.PHONY: run_timed
+run_timed:
+	k6 run --duration 10s script.js
 
 .PHONY: run
 run:

@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"log"
 
-	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
@@ -14,7 +13,7 @@ type UserRepository interface {
 	Get(ctx context.Context, id int) (*user.User, error)
 	GetByEmail(ctx context.Context, email string) (*user.User, error)
 	GetByEmailIfExists(ctx context.Context, email string) (*user.User, error)
-	Save(ctx context.Context, model user.User, tx pgx.Tx) (*user.User, error)
+	Save(ctx context.Context, model user.User) (*user.User, error)
 }
 
 type userRepositoryDB struct {
@@ -25,13 +24,13 @@ func NewUserRepository(pool *pgxpool.Pool) UserRepository {
 	return &userRepositoryDB{pool: pool}
 }
 
-func (db *userRepositoryDB) Save(ctx context.Context, model user.User, tx pgx.Tx) (*user.User, error) {
+func (db *userRepositoryDB) Save(ctx context.Context, model user.User) (*user.User, error) {
 	const sql = `
 		INSERT INTO users ("name", email, "password", created_at)
 		VALUES($1, $2, $3, now())
 		RETURNING id, email, name;
 	`
-	userRow := tx.QueryRow(
+	userRow := db.pool.QueryRow(
 		ctx,
 		sql,
 		model.Name,

@@ -7,11 +7,9 @@ import (
 	"enigmanations/cats-social/internal/cat_match/repository"
 	"enigmanations/cats-social/internal/cat_match/request"
 	userRepository "enigmanations/cats-social/internal/user/repository"
-	"enigmanations/cats-social/pkg/database"
 	"fmt"
 	"reflect"
 
-	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
@@ -97,22 +95,16 @@ func (svc *catMatchService) Create(req *request.CatMatchRequest, actorId int64) 
 		return err
 	}
 
-	if err := database.BeginTransaction(svc.context, svc.pool, func(tx pgx.Tx, ctx context.Context) error {
-		// Create cat matches
-		model := catmatch.CatMatch{
-			IssuedBy:   actorId,
-			MatchCatId: req.MatchCatId,
-			UserCatId:  req.UserCatId,
-			Message:    req.Message,
-		}
-		err = repo.CatMatch.Save(ctx, &model, tx)
-		if err != nil {
-			return err
-		}
-
-		return nil
-	}); err != nil {
-		return fmt.Errorf("transaction %w", err)
+	// Create cat matches
+	model := catmatch.CatMatch{
+		IssuedBy:   actorId,
+		MatchCatId: req.MatchCatId,
+		UserCatId:  req.UserCatId,
+		Message:    req.Message,
+	}
+	err = repo.CatMatch.Save(svc.context, &model)
+	if err != nil {
+		return err
 	}
 
 	return nil
@@ -121,16 +113,10 @@ func (svc *catMatchService) Create(req *request.CatMatchRequest, actorId int64) 
 func (svc *catMatchService) Destroy(id int64) error {
 	repo := svc.repo
 
-	if err := database.BeginTransaction(svc.context, svc.pool, func(tx pgx.Tx, ctx context.Context) error {
-		// Destroy cat matches
-		err := repo.CatMatch.Destroy(ctx, id, tx)
-		if err != nil {
-			return err
-		}
-
-		return nil
-	}); err != nil {
-		return fmt.Errorf("transaction %w", err)
+	// Destroy cat matches
+	err := repo.CatMatch.Destroy(svc.context, id)
+	if err != nil {
+		return err
 	}
 
 	return nil
@@ -139,36 +125,29 @@ func (svc *catMatchService) Destroy(id int64) error {
 func (svc *catMatchService) Approve(matchId int) error {
 	repo := svc.repo
 
-	if err := database.BeginTransaction(svc.context, svc.pool, func(tx pgx.Tx, ctx context.Context) error {
-		// Get cat match
-		catMatchFound, err := repo.CatMatch.Get(ctx, matchId)
-		if err != nil {
-			return err
-		}
+	// Get cat match
+	catMatchFound, err := repo.CatMatch.Get(svc.context, matchId)
+	if err != nil {
+		return err
+	}
 
-		// Approve cat matches
-		err = repo.CatMatch.UpdateCatMatchStatus(ctx, catMatchFound.Id, "success", tx)
-		if err != nil {
-			return err
-		}
+	// Approve cat matches
+	err = repo.CatMatch.UpdateCatMatchStatus(svc.context, catMatchFound.Id, "success")
+	if err != nil {
+		return err
+	}
 
-		// Update cat already match if cat matches approved
-		err = repo.CatMatch.UpdateCatAlreadyMatches(
-			ctx,
-			[]int{
-				int(catMatchFound.UserCatId),
-				int(catMatchFound.MatchCatId),
-			},
-			true,
-			tx,
-		)
-		if err != nil {
-			return err
-		}
-
-		return nil
-	}); err != nil {
-		return fmt.Errorf("transaction %w", err)
+	// Update cat already match if cat matches approved
+	err = repo.CatMatch.UpdateCatAlreadyMatches(
+		svc.context,
+		[]int{
+			int(catMatchFound.UserCatId),
+			int(catMatchFound.MatchCatId),
+		},
+		true,
+	)
+	if err != nil {
+		return err
 	}
 
 	return nil
@@ -177,16 +156,10 @@ func (svc *catMatchService) Approve(matchId int) error {
 func (svc *catMatchService) Reject(matchId int) error {
 	repo := svc.repo
 
-	if err := database.BeginTransaction(svc.context, svc.pool, func(tx pgx.Tx, ctx context.Context) error {
-		// Reject cat matches
-		err := repo.CatMatch.UpdateCatMatchStatus(ctx, matchId, "reject", tx)
-		if err != nil {
-			return err
-		}
-
-		return nil
-	}); err != nil {
-		return fmt.Errorf("transaction %w", err)
+	// Reject cat matches
+	err := repo.CatMatch.UpdateCatMatchStatus(svc.context, matchId, "reject")
+	if err != nil {
+		return err
 	}
 
 	return nil
