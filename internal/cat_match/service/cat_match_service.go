@@ -16,10 +16,10 @@ import (
 )
 
 type CatMatchService interface {
-	Create(req *request.CatMatchRequest, actorId int64) error
-	Approve(matchId int) error
-	Reject(matchId int) error
-	Destroy(id int64) error
+	Create(req *request.CatMatchRequest, actorId int64) <-chan error
+	Approve(matchId int) <-chan error
+	Reject(matchId int) <-chan error
+	Destroy(id int64) <-chan error
 	GetByIssuedOrReceiver(matchId int) (*getByIssueOrReceiverReturn, error)
 }
 
@@ -88,108 +88,140 @@ func (svc *catMatchService) validate(req *request.CatMatchRequest) error {
 	return nil
 }
 
-func (svc *catMatchService) Create(req *request.CatMatchRequest, actorId int64) error {
+func (svc *catMatchService) Create(req *request.CatMatchRequest, actorId int64) <-chan error {
 	repo := svc.repo
 
-	// Validate first
-	err := svc.validate(req)
-	if err != nil {
-		return err
-	}
-
-	if err := database.BeginTransaction(svc.context, svc.pool, func(tx pgx.Tx, ctx context.Context) error {
-		// Create cat matches
-		model := catmatch.CatMatch{
-			IssuedBy:   actorId,
-			MatchCatId: req.MatchCatId,
-			UserCatId:  req.UserCatId,
-			Message:    req.Message,
-		}
-		err = repo.CatMatch.Save(ctx, &model, tx)
+	result := make(chan error)
+	go func() {
+		// Validate first
+		err := svc.validate(req)
 		if err != nil {
-			return err
+			result <- err
+
+			return
 		}
 
-		return nil
-	}); err != nil {
-		return fmt.Errorf("transaction %w", err)
-	}
+		if err := database.BeginTransaction(svc.context, svc.pool, func(tx pgx.Tx, ctx context.Context) error {
+			// Create cat matches
+			model := catmatch.CatMatch{
+				IssuedBy:   actorId,
+				MatchCatId: req.MatchCatId,
+				UserCatId:  req.UserCatId,
+				Message:    req.Message,
+			}
+			err = repo.CatMatch.Save(ctx, &model, tx)
+			if err != nil {
+				result <- err
+				return err
+			}
 
-	return nil
+			result <- nil
+			close(result)
+
+			return nil
+		}); err != nil {
+			result <- err
+		}
+	}()
+
+	return result
 }
 
-func (svc *catMatchService) Destroy(id int64) error {
+func (svc *catMatchService) Destroy(id int64) <-chan error {
 	repo := svc.repo
 
-	if err := database.BeginTransaction(svc.context, svc.pool, func(tx pgx.Tx, ctx context.Context) error {
-		// Destroy cat matches
-		err := repo.CatMatch.Destroy(ctx, id, tx)
-		if err != nil {
-			return err
+	result := make(chan error)
+	go func() {
+		if err := database.BeginTransaction(svc.context, svc.pool, func(tx pgx.Tx, ctx context.Context) error {
+			// Destroy cat matches
+			err := repo.CatMatch.Destroy(ctx, id, tx)
+			if err != nil {
+				result <- err
+				return err
+			}
+
+			result <- nil
+			close(result)
+
+			return nil
+		}); err != nil {
+			result <- err
 		}
+	}()
 
-		return nil
-	}); err != nil {
-		return fmt.Errorf("transaction %w", err)
-	}
-
-	return nil
+	return result
 }
 
-func (svc *catMatchService) Approve(matchId int) error {
+func (svc *catMatchService) Approve(matchId int) <-chan error {
 	repo := svc.repo
 
-	if err := database.BeginTransaction(svc.context, svc.pool, func(tx pgx.Tx, ctx context.Context) error {
-		// Get cat match
-		catMatchFound, err := repo.CatMatch.Get(ctx, matchId)
-		if err != nil {
-			return err
+	result := make(chan error)
+	go func() {
+		if err := database.BeginTransaction(svc.context, svc.pool, func(tx pgx.Tx, ctx context.Context) error {
+			// Get cat match
+			catMatchFound, err := repo.CatMatch.Get(ctx, matchId)
+			if err != nil {
+				result <- err
+				return err
+			}
+
+			// Approve cat matches
+			err = repo.CatMatch.UpdateCatMatchStatus(ctx, catMatchFound.Id, "success", tx)
+			if err != nil {
+				result <- err
+				return err
+			}
+
+			// Update cat already match if cat matches approved
+			err = repo.CatMatch.UpdateCatAlreadyMatches(
+				ctx,
+				[]int{
+					int(catMatchFound.UserCatId),
+					int(catMatchFound.MatchCatId),
+				},
+				true,
+				tx,
+			)
+			if err != nil {
+				result <- err
+				return err
+			}
+
+			result <- nil
+			close(result)
+
+			return nil
+		}); err != nil {
+			result <- err
 		}
+	}()
 
-		// Approve cat matches
-		err = repo.CatMatch.UpdateCatMatchStatus(ctx, catMatchFound.Id, "success", tx)
-		if err != nil {
-			return err
-		}
-
-		// Update cat already match if cat matches approved
-		err = repo.CatMatch.UpdateCatAlreadyMatches(
-			ctx,
-			[]int{
-				int(catMatchFound.UserCatId),
-				int(catMatchFound.MatchCatId),
-			},
-			true,
-			tx,
-		)
-		if err != nil {
-			return err
-		}
-
-		return nil
-	}); err != nil {
-		return fmt.Errorf("transaction %w", err)
-	}
-
-	return nil
+	return result
 }
 
-func (svc *catMatchService) Reject(matchId int) error {
+func (svc *catMatchService) Reject(matchId int) <-chan error {
 	repo := svc.repo
 
-	if err := database.BeginTransaction(svc.context, svc.pool, func(tx pgx.Tx, ctx context.Context) error {
-		// Reject cat matches
-		err := repo.CatMatch.UpdateCatMatchStatus(ctx, matchId, "reject", tx)
-		if err != nil {
-			return err
+	result := make(chan error)
+	go func() {
+		if err := database.BeginTransaction(svc.context, svc.pool, func(tx pgx.Tx, ctx context.Context) error {
+			// Reject cat matches
+			err := repo.CatMatch.UpdateCatMatchStatus(ctx, matchId, "reject", tx)
+			if err != nil {
+				result <- err
+				return err
+			}
+
+			result <- nil
+			close(result)
+
+			return nil
+		}); err != nil {
+			result <- err
 		}
+	}()
 
-		return nil
-	}); err != nil {
-		return fmt.Errorf("transaction %w", err)
-	}
-
-	return nil
+	return result
 }
 
 type getByIssueOrReceiverReturn struct {

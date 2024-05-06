@@ -45,24 +45,27 @@ func (c *userController) UserRegister(ctx *gin.Context) {
 		return
 	}
 
-	userCreated, err := c.UserService.Create(&reqBody)
-	if err != nil {
+	userCreated := <-c.UserService.Create(&reqBody)
+	if userCreated.Error != nil {
 		switch {
-		case errors.Is(err, errs.UserErrEmailInvalidFormat):
-			ctx.AbortWithError(http.StatusBadRequest, err)
+		case errors.Is(userCreated.Error, errs.UserErrEmailInvalidFormat):
+			ctx.AbortWithError(http.StatusBadRequest, userCreated.Error)
 			break
-		case errors.Is(err, errs.UserErrEmailExist):
-			ctx.AbortWithError(http.StatusConflict, err)
+		case errors.Is(userCreated.Error, errs.UserErrEmailExist):
+			ctx.AbortWithError(http.StatusConflict, userCreated.Error)
 			break
 		default:
-			ctx.AbortWithError(http.StatusInternalServerError, err)
+			ctx.AbortWithError(http.StatusInternalServerError, userCreated.Error)
 			break
 		}
 		return
 	}
 
 	// Mapping data from service to response
-	userCreatedMappedResult := response.UserToUserCreateResponse(*userCreated.User, userCreated.AccessToken)
+	userCreatedMappedResult := response.UserToUserCreateResponse(
+		*userCreated.Result.User,
+		userCreated.Result.AccessToken,
+	)
 
 	ctx.JSON(http.StatusCreated, userCreatedMappedResult)
 	return

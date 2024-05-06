@@ -72,14 +72,14 @@ func (c *catController) CatCreateController(ctx *gin.Context) {
 	currUser := auth.GetCurrentUser(ctx)
 
 	// send data to service layer to further process (create record)
-	catCreated, err := c.Service.Create(&reqBody, currUser.Uid)
-	if err != nil {
+	catCreated := <-c.Service.Create(&reqBody, currUser.Uid)
+	if catCreated.Error != nil {
 		ctx.AbortWithError(http.StatusInternalServerError, err)
 		return
 	}
 
 	// Mapping data from service to response
-	catCreatedMappedResult := response.CatToCatCreateResponse(*catCreated)
+	catCreatedMappedResult := response.CatToCatCreateResponse(*catCreated.Result)
 
 	ctx.JSON(http.StatusCreated, catCreatedMappedResult)
 	return
@@ -93,7 +93,7 @@ func (c *catController) CatDeleteController(ctx *gin.Context) {
 		return
 	}
 
-	err := c.Service.Delete(reqUri.ID)
+	err := <-c.Service.Delete(reqUri.ID)
 	if err != nil {
 		switch {
 		case errors.Is(err, errs.CatErrNotFound):
@@ -132,7 +132,7 @@ func (c *catController) CatUpdateController(ctx *gin.Context) {
 		return
 	}
 
-	err = c.Service.Update(&reqBody, reqUri.ID)
+	err = <-c.Service.Update(&reqBody, reqUri.ID)
 	if err != nil {
 		switch {
 		case errors.Is(err, errs.CatErrNotFound):

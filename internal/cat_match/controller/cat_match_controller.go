@@ -49,7 +49,7 @@ func (c *catMatchController) CatMatchCreate(ctx *gin.Context) {
 
 	currUser := auth.GetCurrentUser(ctx)
 
-	if err = c.Service.Create(&reqBody, int64(currUser.Uid)); err != nil {
+	if err = <-c.Service.Create(&reqBody, int64(currUser.Uid)); err != nil {
 		switch {
 		case errors.Is(err, errs.CatMatchErrNotFound),
 			errors.Is(err, errs.CatMatchErrOwner):
@@ -78,7 +78,7 @@ func (c *catMatchController) CatMatchDestroy(ctx *gin.Context) {
 		return
 	}
 
-	if err := c.Service.Destroy(int64(reqUri.ID)); err != nil {
+	if err := <-c.Service.Destroy(int64(reqUri.ID)); err != nil {
 		ctx.AbortWithError(http.StatusInternalServerError, err)
 		return
 	}
@@ -101,7 +101,7 @@ func (c *catMatchController) CatMatchApprove(ctx *gin.Context) {
 		return
 	}
 
-	if err = c.Service.Approve(int(reqBody.MatchId)); err != nil {
+	if err = <-c.Service.Approve(int(reqBody.MatchId)); err != nil {
 		ctx.AbortWithError(http.StatusInternalServerError, err)
 		return
 	}
@@ -124,7 +124,7 @@ func (c *catMatchController) CatMatchReject(ctx *gin.Context) {
 		return
 	}
 
-	if err = c.Service.Reject(int(reqBody.MatchId)); err != nil {
+	if err = <-c.Service.Reject(int(reqBody.MatchId)); err != nil {
 		return
 	}
 

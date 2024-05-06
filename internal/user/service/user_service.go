@@ -10,7 +10,6 @@ import (
 	"enigmanations/cats-social/pkg/bcrypt"
 	"enigmanations/cats-social/pkg/jwt"
 	"enigmanations/cats-social/util"
-	"fmt"
 
 	"enigmanations/cats-social/pkg/database"
 
@@ -19,7 +18,7 @@ import (
 )
 
 type UserService interface {
-	Create(req *request.UserRegisterRequest) (*createReturn, error)
+	Create(req *request.UserRegisterRequest) <-chan util.Result[*createReturn]
 }
 
 type UserDependency struct {
@@ -73,54 +72,72 @@ type createReturn struct {
 	AccessToken string
 }
 
-func (svc *userService) Create(req *request.UserRegisterRequest) (*createReturn, error) {
+func (svc *userService) Create(req *request.UserRegisterRequest) <-chan util.Result[*createReturn] {
 	repo := svc.repo
 
-	// Validate first
-	payload, err := svc.validate(req)
-	if err != nil {
-		return nil, err
-	}
-
-	var (
-		userCredential *user.User
-		accessToken    string
-	)
-
-	if err := database.BeginTransaction(svc.context, svc.pool, func(tx pgx.Tx, ctx context.Context) error {
-		model := user.User{
-			Email:    payload.Email,
-			Name:     payload.Name,
-			Password: payload.Password,
-		}
-
-		// Create user
-		userCreated, err := repo.User.Save(ctx, model, tx)
+	result := make(chan util.Result[*createReturn])
+	go func() {
+		// Validate first
+		payload, err := svc.validate(req)
 		if err != nil {
-			return err
-		}
-		userCredential = userCreated
+			result <- util.Result[*createReturn]{
+				Error: err,
+			}
 
-		_, err = repo.Session.SaveOrGet(ctx, userCredential, tx)
-		if err != nil {
-			return err
+			return
 		}
 
-		// Generate access token
-		token, err := jwt.GenerateAccessToken(uint64(userCredential.Id), userCredential)
-		if err != nil {
-			return fmt.Errorf("%w", err)
+		if err := database.BeginTransaction(svc.context, svc.pool, func(tx pgx.Tx, ctx context.Context) error {
+			model := user.User{
+				Email:    payload.Email,
+				Name:     payload.Name,
+				Password: payload.Password,
+			}
+
+			// Create user
+			userCreated, err := repo.User.Save(ctx, model, tx)
+			if err != nil {
+				result <- util.Result[*createReturn]{
+					Error: err,
+				}
+
+				return err
+			}
+
+			_, err = repo.Session.SaveOrGet(ctx, userCreated, tx)
+			if err != nil {
+				result <- util.Result[*createReturn]{
+					Error: err,
+				}
+
+				return err
+			}
+
+			// Generate access token
+			token, err := jwt.GenerateAccessToken(uint64(userCreated.Id), userCreated)
+			if err != nil {
+				result <- util.Result[*createReturn]{
+					Error: err,
+				}
+
+				return err
+			}
+
+			result <- util.Result[*createReturn]{
+				Result: &createReturn{
+					User:        userCreated,
+					AccessToken: token,
+				},
+			}
+			close(result)
+
+			return nil
+		}); err != nil {
+			result <- util.Result[*createReturn]{
+				Error: err,
+			}
 		}
+	}()
 
-		accessToken = token
-
-		return nil
-	}); err != nil {
-		return nil, fmt.Errorf("transaction %w", err)
-	}
-
-	return &createReturn{
-		User:        userCredential,
-		AccessToken: accessToken,
-	}, nil
+	return result
 }
