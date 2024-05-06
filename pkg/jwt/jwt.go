@@ -7,10 +7,10 @@ import (
 	"errors"
 	"fmt"
 	"log"
-	"net/http"
 	"strings"
 	"time"
 
+	"github.com/gin-gonic/gin"
 	"github.com/golang-jwt/jwt"
 )
 
@@ -88,8 +88,8 @@ func ValidateToken(encodedToken string) (*TokenData, error) {
 	return &TokenData{Uid: Uid, ExpiresAt: Exp}, nil
 }
 
-func GetTokenFromAuthHeader(r *http.Request) (string, error) {
-	authorizationHeader := r.Header.Get("Authorization")
+func GetTokenFromAuthHeader(ctx *gin.Context) (string, error) {
+	authorizationHeader := ctx.GetHeader("Authorization")
 	// check if Authorization token is set
 	if authorizationHeader == "" {
 		return "", errors.New("missing Authorization header")

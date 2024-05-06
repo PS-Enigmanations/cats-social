@@ -1,173 +1,153 @@
 package controller
 
 import (
-	"encoding/json"
 	"enigmanations/cats-social/internal/cat/errs"
 	"enigmanations/cats-social/internal/cat/request"
 	"enigmanations/cats-social/internal/cat/response"
 	"enigmanations/cats-social/internal/cat/service"
-	"enigmanations/cats-social/internal/session"
-	"enigmanations/cats-social/util"
+	"enigmanations/cats-social/internal/common/auth"
 	"errors"
-	"log"
 	"net/http"
-	"strconv"
 
+	"github.com/gin-gonic/gin"
 	"github.com/go-playground/validator"
 )
 
 type CatController interface {
-	CatGetAllController(w http.ResponseWriter, r *http.Request)
-	CatCreateController(w http.ResponseWriter, r *http.Request)
-	CatDeleteController(w http.ResponseWriter, r *http.Request)
-	CatUpdateController(w http.ResponseWriter, r *http.Request)
+	CatGetAllController(ctx *gin.Context)
+	CatCreateController(ctx *gin.Context)
+	CatDeleteController(ctx *gin.Context)
+	CatUpdateController(ctx *gin.Context)
 }
 
 type catController struct {
 	Service service.CatService
 }
 
+type byIdRequest struct {
+	ID int `uri:"id" binding:"required,min=1" example:"1"`
+}
+
 func NewCatController(svc service.CatService) CatController {
 	return &catController{Service: svc}
 }
 
-func (c *catController) CatGetAllController(w http.ResponseWriter, r *http.Request) {
-	w.WriteHeader(http.StatusOK)
-	w.Header().Add("Content-Type", "application/json")
-
-	queryParams, err := util.ParseQuery[request.CatGetAllQueryParams](r)
-	if err != nil {
-		log.Fatalf("Error happened in parse query. Err: %s", err)
+func (c *catController) CatGetAllController(ctx *gin.Context) {
+	var reqQueryParams request.CatGetAllQueryParams
+	if err := ctx.ShouldBindQuery(&reqQueryParams); err != nil {
+		ctx.AbortWithError(http.StatusBadRequest, err)
+		return
 	}
 
-	currUser := session.GetCurrentUser(r.Context())
-	cats, err := c.Service.GetAllByParams(queryParams, currUser.Uid)
+	currUser := auth.GetCurrentUser(ctx)
+
+	cats, err := c.Service.GetAllByParams(&reqQueryParams, currUser.Uid)
+	if err != nil {
+		ctx.AbortWithError(http.StatusInternalServerError, err)
+		return
+	}
 
 	// Mapping data from service to response
 	catShows := response.ToCatShows(cats)
 	catMappedResults := response.CatToCatGetAllResponse(catShows)
 
-	// Marshal the response into JSON
-	jsonResp, err := json.Marshal(catMappedResults)
-	if err != nil {
-		log.Fatalf("Error happened in JSON marshal. Err: %s", err)
-	}
-	w.Write(jsonResp)
-
+	ctx.JSON(http.StatusOK, catMappedResults)
 	return
 }
 
-func (c *catController) CatCreateController(w http.ResponseWriter, r *http.Request) {
+func (c *catController) CatCreateController(ctx *gin.Context) {
 	var reqBody request.CatCreateRequest
-
-	if err := json.NewDecoder(r.Body).Decode(&reqBody); err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
+	if err := ctx.ShouldBindJSON(&reqBody); err != nil {
+		ctx.AbortWithError(http.StatusBadRequest, err)
 		return
 	}
 
 	validate := validator.New()
 	err := validate.Struct(reqBody)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
+		ctx.AbortWithError(http.StatusBadRequest, err)
 		return
 	}
 
-	currUser := session.GetCurrentUser(r.Context())
+	currUser := auth.GetCurrentUser(ctx)
 
 	// send data to service layer to further process (create record)
 	catCreated, err := c.Service.Create(&reqBody, currUser.Uid)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		ctx.AbortWithError(http.StatusInternalServerError, err)
 		return
 	}
-
-	w.WriteHeader(http.StatusCreated)
-	w.Header().Add("Content-Type", "application/json")
 
 	// Mapping data from service to response
 	catCreatedMappedResult := response.CatToCatCreateResponse(*catCreated)
 
-	// Marshal the response into JSON
-	jsonResp, err := json.Marshal(catCreatedMappedResult)
-	if err != nil {
-		log.Fatalf("Error happened in JSON marshal. Err: %s", err)
-	}
-	w.Write(jsonResp)
+	ctx.JSON(http.StatusCreated, catCreatedMappedResult)
 	return
 }
 
-func (c *catController) CatDeleteController(w http.ResponseWriter, r *http.Request) {
+func (c *catController) CatDeleteController(ctx *gin.Context) {
 	// get cat id from request params
-	id := r.URL.Query().Get(":id")
-
-	catId, err := strconv.Atoi(id)
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+	var reqUri *byIdRequest
+	if err := ctx.ShouldBindUri(&reqUri); err != nil {
+		ctx.AbortWithError(http.StatusBadRequest, err)
 		return
 	}
 
-	err = c.Service.Delete(catId)
+	err := c.Service.Delete(reqUri.ID)
 	if err != nil {
 		switch {
 		case errors.Is(err, errs.CatErrNotFound):
-			http.Error(w, err.Error(), http.StatusNotFound)
+			ctx.AbortWithError(http.StatusNotFound, err)
 			break
 		default:
-			http.Error(w, err.Error(), http.StatusInternalServerError)
+			ctx.AbortWithError(http.StatusInternalServerError, err)
 			break
 		}
 
 		return
 	}
 
-	w.WriteHeader(http.StatusOK)
-	w.Header().Add("Content-Type", "application/json")
-
+	ctx.Status(http.StatusCreated)
 	return
 }
 
-func (c *catController) CatUpdateController(w http.ResponseWriter, r *http.Request) {
+func (c *catController) CatUpdateController(ctx *gin.Context) {
 	// get cat id from request params
-	id := r.URL.Query().Get(":id")
-
-	catId, err := strconv.Atoi(id)
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+	var reqUri *byIdRequest
+	if err := ctx.ShouldBindUri(&reqUri); err != nil {
+		ctx.AbortWithError(http.StatusBadRequest, err)
 		return
 	}
 
 	var reqBody request.CatUpdateRequest
-
-	if err := json.NewDecoder(r.Body).Decode(&reqBody); err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
+	if err := ctx.ShouldBindJSON(&reqBody); err != nil {
+		ctx.AbortWithError(http.StatusBadRequest, err)
 		return
 	}
 
 	validate := validator.New()
-	err = validate.Struct(reqBody)
+	err := validate.Struct(reqBody)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
+		ctx.AbortWithError(http.StatusBadRequest, err)
 		return
 	}
 
-	err = c.Service.Update(&reqBody, catId)
+	err = c.Service.Update(&reqBody, reqUri.ID)
 	if err != nil {
 		switch {
 		case errors.Is(err, errs.CatErrNotFound):
-			http.Error(w, err.Error(), http.StatusNotFound)
+			ctx.AbortWithError(http.StatusNotFound, err)
 			break
 		case errors.Is(err, errs.CatErrSexNotEditable):
-			http.Error(w, err.Error(), http.StatusBadRequest)
+			ctx.AbortWithError(http.StatusBadRequest, err)
 			break
 		default:
-			http.Error(w, err.Error(), http.StatusInternalServerError)
+			ctx.AbortWithError(http.StatusInternalServerError, err)
 			break
 		}
 		return
 	}
 
-	w.WriteHeader(http.StatusOK)
-	w.Header().Add("Content-Type", "application/json")
-
+	ctx.Status(http.StatusOK)
 	return
 }

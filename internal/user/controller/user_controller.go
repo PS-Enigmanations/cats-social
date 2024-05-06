@@ -1,7 +1,6 @@
 package controller
 
 import (
-	"encoding/json"
 	sessionErrs "enigmanations/cats-social/internal/session/errs"
 	sessionRequest "enigmanations/cats-social/internal/session/request"
 	sessionResponse "enigmanations/cats-social/internal/session/response"
@@ -12,15 +11,15 @@ import (
 	"enigmanations/cats-social/internal/user/service"
 	"enigmanations/cats-social/util"
 	"errors"
-	"log"
 	"net/http"
 
+	"github.com/gin-gonic/gin"
 	"github.com/go-playground/validator"
 )
 
 type UserController interface {
-	UserRegister(w http.ResponseWriter, r *http.Request)
-	UserLogin(w http.ResponseWriter, r *http.Request)
+	UserRegister(ctx *gin.Context)
+	UserLogin(ctx *gin.Context)
 }
 
 type userController struct {
@@ -32,18 +31,17 @@ func NewUserController(userSvc service.UserService, sessionSvc sessionService.Se
 	return &userController{UserService: userSvc, SessionService: sessionSvc}
 }
 
-func (c *userController) UserRegister(w http.ResponseWriter, r *http.Request) {
+func (c *userController) UserRegister(ctx *gin.Context) {
 	var reqBody request.UserRegisterRequest
-
-	if err := json.NewDecoder(r.Body).Decode(&reqBody); err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
+	if err := ctx.ShouldBindJSON(&reqBody); err != nil {
+		ctx.AbortWithError(http.StatusBadRequest, err)
 		return
 	}
 
 	validate := validator.New()
 	err := validate.Struct(reqBody)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
+		ctx.AbortWithError(http.StatusBadRequest, err)
 		return
 	}
 
@@ -51,51 +49,42 @@ func (c *userController) UserRegister(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		switch {
 		case errors.Is(err, errs.UserErrEmailInvalidFormat):
-			http.Error(w, err.Error(), http.StatusBadRequest)
+			ctx.AbortWithError(http.StatusBadRequest, err)
 			break
 		case errors.Is(err, errs.UserErrEmailExist):
-			http.Error(w, err.Error(), http.StatusConflict)
+			ctx.AbortWithError(http.StatusConflict, err)
 			break
 		default:
-			http.Error(w, err.Error(), http.StatusInternalServerError)
+			ctx.AbortWithError(http.StatusInternalServerError, err)
 			break
 		}
 		return
 	}
 
-	w.WriteHeader(http.StatusCreated)
-	w.Header().Add("Content-Type", "application/json")
-
 	// Mapping data from service to response
 	userCreatedMappedResult := response.UserToUserCreateResponse(*userCreated.User, userCreated.AccessToken)
 
-	// Marshal the response into JSON
-	jsonResp, err := json.Marshal(userCreatedMappedResult)
-	if err != nil {
-		log.Fatalf("Error happened in JSON marshal. Err: %s", err)
-	}
-	w.Write(jsonResp)
+	ctx.JSON(http.StatusCreated, userCreatedMappedResult)
 	return
 }
 
-func (c *userController) UserLogin(w http.ResponseWriter, r *http.Request) {
+func (c *userController) UserLogin(ctx *gin.Context) {
 	var reqBody sessionRequest.SessionLoginRequest
-
-	if err := json.NewDecoder(r.Body).Decode(&reqBody); err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
+	if err := ctx.ShouldBindJSON(&reqBody); err != nil {
+		ctx.AbortWithError(http.StatusBadRequest, err)
 		return
 	}
 
 	validate := validator.New()
 	err := validate.Struct(reqBody)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
+		ctx.AbortWithError(http.StatusBadRequest, err)
 		return
 	}
 
 	// Validate email format
 	if !util.IsEmail(reqBody.Email) {
-		http.Error(w, "Invalid email format", http.StatusBadRequest)
+		ctx.AbortWithError(http.StatusBadRequest, errors.New("Invalid email format"))
 		return
 	}
 
@@ -103,33 +92,24 @@ func (c *userController) UserLogin(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		switch {
 		case errors.Is(err, errs.UserErrEmailInvalidFormat):
-			http.Error(w, err.Error(), http.StatusBadRequest)
+			ctx.AbortWithError(http.StatusBadRequest, err)
 			break
 		case errors.Is(err, errs.UserErrNotFound):
-			http.Error(w, err.Error(), http.StatusNotFound)
+			ctx.AbortWithError(http.StatusNotFound, err)
 			break
 		case errors.Is(err, sessionErrs.WrongPassword):
-			http.Error(w, err.Error(), http.StatusBadRequest)
+			ctx.AbortWithError(http.StatusBadRequest, err)
 			break
 		default:
-			http.Error(w, err.Error(), http.StatusInternalServerError)
+			ctx.AbortWithError(http.StatusInternalServerError, err)
 			break
 		}
 		return
 	}
 
-	w.WriteHeader(http.StatusOK)
-	w.Header().Add("Content-Type", "application/json")
-
 	// Mapping data from service to response
 	userLoggedMappedResult := sessionResponse.SessionToLoginResponse(*userLogged.User, userLogged.AccessToken)
 
-	// Marshal the response into JSON
-	jsonResp, err := json.Marshal(userLoggedMappedResult)
-	if err != nil {
-		log.Fatalf("Error happened in JSON marshal. Err: %s", err)
-	}
-	w.Write(jsonResp)
-
+	ctx.JSON(http.StatusOK, userLoggedMappedResult)
 	return
 }

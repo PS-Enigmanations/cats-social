@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"enigmanations/cats-social/pkg/database"
+	"enigmanations/cats-social/pkg/env"
 	"fmt"
 	"log"
 	"log/slog"
@@ -13,7 +14,7 @@ import (
 	"enigmanations/cats-social/middleware"
 	routes "enigmanations/cats-social/router"
 
-	"github.com/bmizerany/pat"
+	"github.com/gin-gonic/gin"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
@@ -29,10 +30,15 @@ func main() {
 	defer pool.Close()
 
 	// Prepare middleware
-	middleware := middleware.RegisterMiddleware(ctx, pool)
+	middleware := middleware.NewMiddleware(pool)
+
+	// Disable debug mode in production
+	if env.IsProduction() {
+		gin.SetMode(gin.ReleaseMode)
+	}
 
 	// Prepare router
-	router := pat.New()
+	router := gin.New()
 
 	// Register routes
 	routes.RegisterRouter(ctx, pool, router, middleware)

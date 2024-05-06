@@ -1,133 +1,126 @@
 package controller
 
 import (
-	"encoding/json"
 	"enigmanations/cats-social/internal/cat_match/errs"
 	"enigmanations/cats-social/internal/cat_match/request"
 	"enigmanations/cats-social/internal/cat_match/response"
 	"enigmanations/cats-social/internal/cat_match/service"
-	"enigmanations/cats-social/internal/session"
+	"enigmanations/cats-social/internal/common/auth"
 	"errors"
-	"log"
 	"net/http"
-	"strconv"
 
+	"github.com/gin-gonic/gin"
 	"github.com/go-playground/validator"
 )
 
 type CatMatchController interface {
-	CatMatchCreate(w http.ResponseWriter, r *http.Request)
-	CatMatchDestroy(w http.ResponseWriter, r *http.Request)
-	CatMatchApprove(w http.ResponseWriter, r *http.Request)
-	CatMatchReject(w http.ResponseWriter, r *http.Request)
-	CatMatchGetAll(w http.ResponseWriter, r *http.Request)
+	CatMatchCreate(ctx *gin.Context)
+	CatMatchDestroy(ctx *gin.Context)
+	CatMatchApprove(ctx *gin.Context)
+	CatMatchReject(ctx *gin.Context)
+	CatMatchGetAll(ctx *gin.Context)
 }
 
 type catMatchController struct {
 	Service service.CatMatchService
 }
 
+type byIdRequest struct {
+	ID int `uri:"id" binding:"required,min=1" example:"1"`
+}
+
 func NewCatMatchController(svc service.CatMatchService) CatMatchController {
 	return &catMatchController{Service: svc}
 }
 
-func (c *catMatchController) CatMatchCreate(w http.ResponseWriter, r *http.Request) {
+func (c *catMatchController) CatMatchCreate(ctx *gin.Context) {
 	var reqBody request.CatMatchRequest
-
-	if err := json.NewDecoder(r.Body).Decode(&reqBody); err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
+	if err := ctx.ShouldBindJSON(&reqBody); err != nil {
+		ctx.AbortWithError(http.StatusBadRequest, err)
 		return
 	}
 
 	validate := validator.New()
 	err := validate.Struct(reqBody)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
+		ctx.AbortWithError(http.StatusBadRequest, err)
 		return
 	}
 
-	currUser := session.GetCurrentUser(r.Context())
+	currUser := auth.GetCurrentUser(ctx)
 
 	if err = c.Service.Create(&reqBody, int64(currUser.Uid)); err != nil {
 		switch {
 		case errors.Is(err, errs.CatMatchErrNotFound),
 			errors.Is(err, errs.CatMatchErrOwner):
-			http.Error(w, err.Error(), http.StatusNotFound)
+			ctx.AbortWithError(http.StatusNotFound, err)
 			break
 		case errors.Is(err, errs.CatMatchErrGender),
 			errors.Is(err, errs.CatMatchErrInvalidAuthor),
 			errors.Is(err, errs.CatMatchErrAlreadyMatched):
-			http.Error(w, err.Error(), http.StatusBadRequest)
+			ctx.AbortWithError(http.StatusBadRequest, err)
 			break
 		default:
-			http.Error(w, err.Error(), http.StatusInternalServerError)
+			ctx.AbortWithError(http.StatusInternalServerError, err)
 			break
 		}
 		return
 	}
 
-	w.WriteHeader(http.StatusCreated)
-	w.Header().Add("Content-Type", "application/json")
-
+	ctx.Status(http.StatusCreated)
 	return
 }
 
-func (c *catMatchController) CatMatchDestroy(w http.ResponseWriter, r *http.Request) {
-	id := r.URL.Query().Get(":id")
-
-	catId, err := strconv.Atoi(id)
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+func (c *catMatchController) CatMatchDestroy(ctx *gin.Context) {
+	var reqUri *byIdRequest
+	if err := ctx.ShouldBindUri(&reqUri); err != nil {
+		ctx.AbortWithError(http.StatusInternalServerError, err)
 		return
 	}
 
-	if err = c.Service.Destroy(int64(catId)); err != nil {
+	if err := c.Service.Destroy(int64(reqUri.ID)); err != nil {
+		ctx.AbortWithError(http.StatusInternalServerError, err)
 		return
 	}
 
-	w.WriteHeader(http.StatusOK)
-	w.Header().Add("Content-Type", "application/json")
-
+	ctx.Status(http.StatusOK)
 	return
 }
 
-func (c *catMatchController) CatMatchApprove(w http.ResponseWriter, r *http.Request) {
+func (c *catMatchController) CatMatchApprove(ctx *gin.Context) {
 	var reqBody request.CatMatchApproveRejectRequest
-
-	if err := json.NewDecoder(r.Body).Decode(&reqBody); err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
+	if err := ctx.ShouldBindJSON(&reqBody); err != nil {
+		ctx.AbortWithError(http.StatusBadRequest, err)
 		return
 	}
 
 	validate := validator.New()
 	err := validate.Struct(reqBody)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
+		ctx.AbortWithError(http.StatusBadRequest, err)
 		return
 	}
 
 	if err = c.Service.Approve(int(reqBody.MatchId)); err != nil {
+		ctx.AbortWithError(http.StatusInternalServerError, err)
 		return
 	}
 
-	w.WriteHeader(http.StatusOK)
-	w.Header().Add("Content-Type", "application/json")
-
+	ctx.Status(http.StatusCreated)
 	return
 }
 
-func (c *catMatchController) CatMatchReject(w http.ResponseWriter, r *http.Request) {
+func (c *catMatchController) CatMatchReject(ctx *gin.Context) {
 	var reqBody request.CatMatchApproveRejectRequest
-
-	if err := json.NewDecoder(r.Body).Decode(&reqBody); err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
+	if err := ctx.ShouldBindJSON(&reqBody); err != nil {
+		ctx.AbortWithError(http.StatusBadRequest, err)
 		return
 	}
 
 	validate := validator.New()
 	err := validate.Struct(reqBody)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
+		ctx.AbortWithError(http.StatusBadRequest, err)
 		return
 	}
 
@@ -135,33 +128,23 @@ func (c *catMatchController) CatMatchReject(w http.ResponseWriter, r *http.Reque
 		return
 	}
 
-	w.WriteHeader(http.StatusOK)
-	w.Header().Add("Content-Type", "application/json")
-
+	ctx.Status(http.StatusOK)
 	return
 }
 
-func (c *catMatchController) CatMatchGetAll(w http.ResponseWriter, r *http.Request) {
-	w.WriteHeader(http.StatusOK)
-	w.Header().Add("Content-Type", "application/json")
-
-	currUser := session.GetCurrentUser(r.Context())
+func (c *catMatchController) CatMatchGetAll(ctx *gin.Context) {
+	currUser := auth.GetCurrentUser(ctx)
 	catMatches, err := c.Service.GetByIssuedOrReceiver(int(currUser.Uid))
 	if err != nil {
-		log.Fatalf("Error happened in JSON marshal. Err: %s", err)
+		ctx.AbortWithError(http.StatusInternalServerError, err)
+		return
 	}
 
 	// Mapping data from service to response
 	catMatchShows := response.ToCatMatchShows(catMatches.CatMatches)
 	catMatchMappedResults := response.CatToCatGetAllResponse(catMatchShows)
 
-	// Marshal the response into JSON
-	jsonResp, err := json.Marshal(catMatchMappedResults)
-	if err != nil {
-		log.Fatalf("Error happened in JSON marshal. Err: %s", err)
-		return
-	}
-
 	// Write the JSON response
-	w.Write(jsonResp)
+	ctx.JSON(http.StatusOK, catMatchMappedResults)
+	return
 }
