@@ -11,9 +11,6 @@ import (
 	"enigmanations/cats-social/pkg/jwt"
 	"enigmanations/cats-social/util"
 
-	"enigmanations/cats-social/pkg/database"
-
-	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
@@ -87,56 +84,48 @@ func (svc *userService) Create(req *request.UserRegisterRequest) <-chan util.Res
 			return
 		}
 
-		if err := database.BeginTransaction(svc.context, svc.pool, func(tx pgx.Tx, ctx context.Context) error {
-			model := user.User{
-				Email:    payload.Email,
-				Name:     payload.Name,
-				Password: payload.Password,
-			}
+		model := user.User{
+			Email:    payload.Email,
+			Name:     payload.Name,
+			Password: payload.Password,
+		}
 
-			// Create user
-			userCreated, err := repo.User.Save(ctx, model, tx)
-			if err != nil {
-				result <- util.Result[*createReturn]{
-					Error: err,
-				}
-
-				return err
-			}
-
-			_, err = repo.Session.SaveOrGet(ctx, userCreated, tx)
-			if err != nil {
-				result <- util.Result[*createReturn]{
-					Error: err,
-				}
-
-				return err
-			}
-
-			// Generate access token
-			token, err := jwt.GenerateAccessToken(uint64(userCreated.Id), userCreated)
-			if err != nil {
-				result <- util.Result[*createReturn]{
-					Error: err,
-				}
-
-				return err
-			}
-
-			result <- util.Result[*createReturn]{
-				Result: &createReturn{
-					User:        userCreated,
-					AccessToken: token,
-				},
-			}
-			close(result)
-
-			return nil
-		}); err != nil {
+		// Create user
+		userCreated, err := repo.User.Save(svc.context, model)
+		if err != nil {
 			result <- util.Result[*createReturn]{
 				Error: err,
 			}
+
+			return
 		}
+
+		_, err = repo.Session.SaveOrGet(svc.context, userCreated)
+		if err != nil {
+			result <- util.Result[*createReturn]{
+				Error: err,
+			}
+
+			return
+		}
+
+		// Generate access token
+		token, err := jwt.GenerateAccessToken(uint64(userCreated.Id), userCreated)
+		if err != nil {
+			result <- util.Result[*createReturn]{
+				Error: err,
+			}
+
+			return
+		}
+
+		result <- util.Result[*createReturn]{
+			Result: &createReturn{
+				User:        userCreated,
+				AccessToken: token,
+			},
+		}
+		close(result)
 	}()
 
 	return result

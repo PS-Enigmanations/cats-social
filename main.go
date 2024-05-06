@@ -25,7 +25,7 @@ func main() {
 	ctx := context.Background()
 
 	// Connect to the database
-	pgUrl := `postgres://%s:%s@%s:%d/%s?%s&pool_max_conns=%d`
+	pgUrl := `postgres://%s:%s@%s:%d/%s?%s`
 	pgUrl = fmt.Sprintf(pgUrl,
 		cfg.DBUsername,
 		cfg.DBPass,
@@ -33,7 +33,6 @@ func main() {
 		cfg.DBPort,
 		cfg.DBName,
 		cfg.DBParams,
-		32,
 	)
 
 	pool, err := database.NewPGXPool(ctx, pgUrl, &database.PGXStdLogger{

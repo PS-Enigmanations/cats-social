@@ -7,11 +7,9 @@ import (
 	"enigmanations/cats-social/internal/cat_match/repository"
 	"enigmanations/cats-social/internal/cat_match/request"
 	userRepository "enigmanations/cats-social/internal/user/repository"
-	"enigmanations/cats-social/pkg/database"
 	"fmt"
 	"reflect"
 
-	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
@@ -101,27 +99,21 @@ func (svc *catMatchService) Create(req *request.CatMatchRequest, actorId int64) 
 			return
 		}
 
-		if err := database.BeginTransaction(svc.context, svc.pool, func(tx pgx.Tx, ctx context.Context) error {
-			// Create cat matches
-			model := catmatch.CatMatch{
-				IssuedBy:   actorId,
-				MatchCatId: req.MatchCatId,
-				UserCatId:  req.UserCatId,
-				Message:    req.Message,
-			}
-			err = repo.CatMatch.Save(ctx, &model, tx)
-			if err != nil {
-				result <- err
-				return err
-			}
-
-			result <- nil
-			close(result)
-
-			return nil
-		}); err != nil {
-			result <- err
+		// Create cat matches
+		model := catmatch.CatMatch{
+			IssuedBy:   actorId,
+			MatchCatId: req.MatchCatId,
+			UserCatId:  req.UserCatId,
+			Message:    req.Message,
 		}
+		err = repo.CatMatch.Save(svc.context, &model)
+		if err != nil {
+			result <- err
+			return
+		}
+
+		result <- nil
+		close(result)
 	}()
 
 	return result
@@ -132,21 +124,15 @@ func (svc *catMatchService) Destroy(id int64) <-chan error {
 
 	result := make(chan error)
 	go func() {
-		if err := database.BeginTransaction(svc.context, svc.pool, func(tx pgx.Tx, ctx context.Context) error {
-			// Destroy cat matches
-			err := repo.CatMatch.Destroy(ctx, id, tx)
-			if err != nil {
-				result <- err
-				return err
-			}
-
-			result <- nil
-			close(result)
-
-			return nil
-		}); err != nil {
+		// Destroy cat matches
+		err := repo.CatMatch.Destroy(svc.context, id)
+		if err != nil {
 			result <- err
+			return
 		}
+
+		result <- nil
+		close(result)
 	}()
 
 	return result
@@ -157,43 +143,36 @@ func (svc *catMatchService) Approve(matchId int) <-chan error {
 
 	result := make(chan error)
 	go func() {
-		if err := database.BeginTransaction(svc.context, svc.pool, func(tx pgx.Tx, ctx context.Context) error {
-			// Get cat match
-			catMatchFound, err := repo.CatMatch.Get(ctx, matchId)
-			if err != nil {
-				result <- err
-				return err
-			}
-
-			// Approve cat matches
-			err = repo.CatMatch.UpdateCatMatchStatus(ctx, catMatchFound.Id, "success", tx)
-			if err != nil {
-				result <- err
-				return err
-			}
-
-			// Update cat already match if cat matches approved
-			err = repo.CatMatch.UpdateCatAlreadyMatches(
-				ctx,
-				[]int{
-					int(catMatchFound.UserCatId),
-					int(catMatchFound.MatchCatId),
-				},
-				true,
-				tx,
-			)
-			if err != nil {
-				result <- err
-				return err
-			}
-
-			result <- nil
-			close(result)
-
-			return nil
-		}); err != nil {
+		// Get cat match
+		catMatchFound, err := repo.CatMatch.Get(svc.context, matchId)
+		if err != nil {
 			result <- err
+			return
 		}
+
+		// Approve cat matches
+		err = repo.CatMatch.UpdateCatMatchStatus(svc.context, catMatchFound.Id, "success")
+		if err != nil {
+			result <- err
+			return
+		}
+
+		// Update cat already match if cat matches approved
+		err = repo.CatMatch.UpdateCatAlreadyMatches(
+			svc.context,
+			[]int{
+				int(catMatchFound.UserCatId),
+				int(catMatchFound.MatchCatId),
+			},
+			true,
+		)
+		if err != nil {
+			result <- err
+			return
+		}
+
+		result <- nil
+		close(result)
 	}()
 
 	return result
@@ -204,21 +183,15 @@ func (svc *catMatchService) Reject(matchId int) <-chan error {
 
 	result := make(chan error)
 	go func() {
-		if err := database.BeginTransaction(svc.context, svc.pool, func(tx pgx.Tx, ctx context.Context) error {
-			// Reject cat matches
-			err := repo.CatMatch.UpdateCatMatchStatus(ctx, matchId, "reject", tx)
-			if err != nil {
-				result <- err
-				return err
-			}
-
-			result <- nil
-			close(result)
-
-			return nil
-		}); err != nil {
+		// Reject cat matches
+		err := repo.CatMatch.UpdateCatMatchStatus(svc.context, matchId, "reject")
+		if err != nil {
 			result <- err
+			return
 		}
+
+		result <- nil
+		close(result)
 	}()
 
 	return result

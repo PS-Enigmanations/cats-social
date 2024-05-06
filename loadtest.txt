@@ -1,0 +1,21 @@
+make run50 && sleep 5 && make run100 && sleep 5 && make run200 && sleep 5 && make run300 && sleep 5 && make run600
+LOAD_TEST=true k6 run -i 50 --vus 50 script.js | grep -E 'checks|http_req_duration|\{ expected_response:true \}'
+     checks.........................: 95.16% ✓ 3031      ✗ 154 
+     http_req_duration..............: avg=40.12ms  min=230µs    med=12.58ms max=495.78ms p(95)=220.19ms p(99)=452.3ms 
+       { expected_response:true }...: avg=40.12ms  min=230µs    med=12.58ms max=495.78ms p(95)=220.19ms p(99)=452.3ms 
+LOAD_TEST=true k6 run -i 100 --vus 100 script.js | grep -E 'checks|http_req_duration|\{ expected_response:true \}'
+     checks.........................: 93.76% ✓ 5969        ✗ 397  
+     http_req_duration..............: avg=57.7ms   min=199µs    med=26.81ms max=775.75ms p(95)=183.54ms p(99)=661.83ms
+       { expected_response:true }...: avg=57.7ms   min=199µs    med=26.81ms max=775.75ms p(95)=183.54ms p(99)=661.83ms
+LOAD_TEST=true k6 run -i 200 --vus 200 script.js | grep -E 'checks|http_req_duration|\{ expected_response:true \}'
+     checks.........................: 93.33% ✓ 11891      ✗ 849  
+     http_req_duration..............: avg=147.9ms  min=226µs med=52.97ms max=1.68s    p(95)=473.91ms p(99)=1.57s  
+       { expected_response:true }...: avg=147.9ms  min=226µs med=52.97ms max=1.68s    p(95)=473.91ms p(99)=1.57s  
+LOAD_TEST=true k6 run -i 300 --vus 300 script.js | grep -E 'checks|http_req_duration|\{ expected_response:true \}'
+     checks.........................: 92.97% ✓ 17767      ✗ 1343 
+     http_req_duration..............: avg=195.13ms min=210µs med=59.51ms max=2.41s    p(95)=673.71ms p(99)=2.23s  
+       { expected_response:true }...: avg=195.13ms min=210µs med=59.51ms max=2.41s    p(95)=673.71ms p(99)=2.23s  
+LOAD_TEST=true k6 run -i 600 --vus 600 script.js | grep -E 'checks|http_req_duration|\{ expected_response:true \}'
+     checks.........................: 92.92% ✓ 35517       ✗ 2703 
+     http_req_duration..............: avg=396.48ms min=202µs med=140.22ms max=4.94s    p(95)=1.47s    p(99)=4.61s  
+       { expected_response:true }...: avg=396.48ms min=202µs med=140.22ms max=4.94s    p(95)=1.47s    p(99)=4.61s  

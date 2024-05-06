@@ -9,16 +9,15 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
 type CatRepository interface {
 	GetAllByParams(ctx context.Context, params *request.CatGetAllQueryParams, ownerId int) ([]*cat.Cat, error)
 	FindById(ctx context.Context, catId int) (*cat.Cat, error)
-	Save(ctx context.Context, tx pgx.Tx, model cat.Cat) (*cat.Cat, error)
-	Update(ctx context.Context, tx pgx.Tx, model cat.Cat) (*cat.Cat, error)
-	Delete(ctx context.Context, tx pgx.Tx, catId int) error
+	Save(ctx context.Context, model cat.Cat) (*cat.Cat, error)
+	Update(ctx context.Context, model cat.Cat) (*cat.Cat, error)
+	Delete(ctx context.Context, catId int) error
 }
 
 type Database struct {
@@ -185,7 +184,7 @@ func (db *Database) FindById(ctx context.Context, catId int) (*cat.Cat, error) {
 	return c, nil
 }
 
-func (db *Database) Save(ctx context.Context, tx pgx.Tx, model cat.Cat) (*cat.Cat, error) {
+func (db *Database) Save(ctx context.Context, model cat.Cat) (*cat.Cat, error) {
 	const sql = `INSERT into cats
 		("user_id", "name", "race", "sex", "age_in_month", "description")
 		VALUES ($1, $2, $3, $4, $5, $6)
@@ -193,7 +192,7 @@ func (db *Database) Save(ctx context.Context, tx pgx.Tx, model cat.Cat) (*cat.Ca
 
 	// execute query to insert new record. it takes 'cat' variable as its input
 	// the result will be placed in 'row' variable
-	row := tx.QueryRow(
+	row := db.pool.QueryRow(
 		ctx,
 		sql,
 		model.UserId,
@@ -225,7 +224,7 @@ func (db *Database) Save(ctx context.Context, tx pgx.Tx, model cat.Cat) (*cat.Ca
 	return c, nil
 }
 
-func (db *Database) Update(ctx context.Context, tx pgx.Tx, model cat.Cat) (*cat.Cat, error) {
+func (db *Database) Update(ctx context.Context, model cat.Cat) (*cat.Cat, error) {
 	const sql = `UPDATE cats
 		SET name = COALESCE($2, "name"),
 			race = COALESCE($3, "race"),
@@ -236,7 +235,7 @@ func (db *Database) Update(ctx context.Context, tx pgx.Tx, model cat.Cat) (*cat.
 		WHERE id = $1
 		RETURNING id, name, race, sex, age_in_month, description;`
 
-	row := tx.QueryRow(
+	row := db.pool.QueryRow(
 		ctx,
 		sql,
 		model.Id,
@@ -263,10 +262,10 @@ func (db *Database) Update(ctx context.Context, tx pgx.Tx, model cat.Cat) (*cat.
 	return c, nil
 }
 
-func (db *Database) Delete(ctx context.Context, tx pgx.Tx, catId int) error {
+func (db *Database) Delete(ctx context.Context, catId int) error {
 	const sql = `UPDATE cats SET deleted_at = NOW() WHERE id = $1`
 
-	_, err := tx.Exec(ctx, sql, catId)
+	_, err := db.pool.Exec(ctx, sql, catId)
 	if err != nil {
 		return fmt.Errorf("Delete %w", err)
 	}

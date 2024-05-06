@@ -24,14 +24,14 @@ type AssociationByCatIdValue struct {
 }
 
 type CatMatchRepository interface {
-	Save(ctx context.Context, model *catmatch.CatMatch, tx pgx.Tx) error
-	UpdateCatAlreadyMatches(ctx context.Context, ids []int, matched bool, tx pgx.Tx) error
-	UpdateCatMatchStatus(ctx context.Context, id int, status string, tx pgx.Tx) error
+	Save(ctx context.Context, model *catmatch.CatMatch) error
+	UpdateCatAlreadyMatches(ctx context.Context, ids []int, matched bool) error
+	UpdateCatMatchStatus(ctx context.Context, id int, status string) error
 	Get(ctx context.Context, id int) (*catmatch.CatMatch, error)
 	GetByCatId(ctx context.Context, id int) (*catmatch.CatMatch, error)
 	GetAssociationByCatId(ctx context.Context, id int) (*AssociationByCatIdValue, error)
 	GetByIssuedOrReceiver(ctx context.Context, id int) ([]*catmatch.CatMatchValue, error)
-	Destroy(ctx context.Context, id int64, tx pgx.Tx) error
+	Destroy(ctx context.Context, id int64) error
 }
 
 type catMatchRepositoryDB struct {
@@ -42,12 +42,12 @@ func NewCatMatchRepository(pool *pgxpool.Pool) CatMatchRepository {
 	return &catMatchRepositoryDB{pool: pool}
 }
 
-func (db *catMatchRepositoryDB) Save(ctx context.Context, model *catmatch.CatMatch, tx pgx.Tx) error {
+func (db *catMatchRepositoryDB) Save(ctx context.Context, model *catmatch.CatMatch) error {
 	const sql = `
 		INSERT INTO cat_matches (issued_by, match_cat_id, user_cat_id, message, created_at)
 		VALUES($1, $2, $3, $4, now());
 	`
-	_, err := tx.Exec(
+	_, err := db.pool.Exec(
 		ctx,
 		sql,
 		model.IssuedBy,
@@ -141,7 +141,7 @@ func (db *catMatchRepositoryDB) GetByCatId(ctx context.Context, catId int) (*cat
 	return v, nil
 }
 
-func (db *catMatchRepositoryDB) UpdateCatAlreadyMatches(ctx context.Context, ids []int, matched bool, tx pgx.Tx) error {
+func (db *catMatchRepositoryDB) UpdateCatAlreadyMatches(ctx context.Context, ids []int, matched bool) error {
 	const sql = `
 		UPDATE cats SET
 			has_matched=@alreadyMatched,
@@ -157,7 +157,7 @@ func (db *catMatchRepositoryDB) UpdateCatAlreadyMatches(ctx context.Context, ids
 		batch.Queue(sql, args)
 	}
 
-	results := tx.SendBatch(ctx, batch)
+	results := db.pool.SendBatch(ctx, batch)
 	defer results.Close()
 
 	for range ids {
@@ -170,11 +170,11 @@ func (db *catMatchRepositoryDB) UpdateCatAlreadyMatches(ctx context.Context, ids
 	return results.Close()
 }
 
-func (db *catMatchRepositoryDB) Destroy(ctx context.Context, id int64, tx pgx.Tx) error {
+func (db *catMatchRepositoryDB) Destroy(ctx context.Context, id int64) error {
 	const sql = `
 		UPDATE cat_matches SET deleted_at=now() WHERE id = $1
 	`
-	_, err := tx.Exec(
+	_, err := db.pool.Exec(
 		ctx,
 		sql,
 		id,
@@ -188,14 +188,14 @@ func (db *catMatchRepositoryDB) Destroy(ctx context.Context, id int64, tx pgx.Tx
 	return nil
 }
 
-func (db *catMatchRepositoryDB) UpdateCatMatchStatus(ctx context.Context, id int, status string, tx pgx.Tx) error {
+func (db *catMatchRepositoryDB) UpdateCatMatchStatus(ctx context.Context, id int, status string) error {
 	const sql = `
 		UPDATE cat_matches SET
 			status=$1,
 			updated_at = NOW()
 		WHERE id = $2
 	`
-	_, err := tx.Exec(
+	_, err := db.pool.Exec(
 		ctx,
 		sql,
 		status,
